@@ -1,4 +1,6 @@
 from liveCommon import queueCall
+import logging
+import sys
 
 # noinspection PyUnreachableCode
 if False:
@@ -10,11 +12,15 @@ if False:
 	from config.config import Config
 	iop.config = Config(COMP())
 
+
 class LiveRig:
 	def __init__(self, ownerComp: 'COMP'):
 		self.ownerComp = ownerComp
 
 	def OnStartup(self):
+		logger = logging.getLogger()
+		logger.setLevel(logging.INFO)
+		logger.addHandler(logging.StreamHandler(sys.stdout))
 		queueCall(self._startupStage, [0])
 
 	def _startupStage(self, stage: int):
