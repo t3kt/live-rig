@@ -1,3 +1,13 @@
+# noinspection PyUnreachableCode
+if False:
+	# noinspection PyUnresolvedReferences
+	from _stubs import *
+	from sceneLibrary.sceneLibrary import SceneLibrary
+	iop.sceneLibrary = SceneLibrary(COMP())
+	from sourceTrack import *
+	# noinspection PyTypeChecker
+	ext.sourceTrack = SourceTrack(COMP())
+
 # callbacks for when associated Panel is being dropped on
 
 def onHoverStartGetAccept(comp, info):
@@ -13,8 +23,14 @@ def onHoverStartGetAccept(comp, info):
 	Returns:
 		True if comp can receive dragItems
 	"""
-	#debug('\nonHoverStartGetAccept comp:', comp.path, '- info:\n', info)
-	return True # accept what is being dragged
+	items = info.get('dragItems') or []
+	if len(items) != 1:
+		return False
+	name = items[0]
+	# debug('\nonHoverStartGetAccept comp:', comp.path, f'- info:\n', info, f'scene: {name!r}\n')
+	# return True # accept what is being dragged
+	exists = iop.sceneLibrary.HasScene(items[0])
+	debug(f'scene {name!r} exists: {exists}')
 
 def onHoverEnd(comp, info):
 	"""
@@ -47,6 +63,11 @@ def onDropGetResults(comp, info):
 			'modified': object modified by drop
 	"""
 	debug('\nonDropGetResults comp:', comp.path, '- info:\n', info)
+	items = info.get('dragItems') or []
+	if len(items) != 1:
+		return False
+	name = items[0]
+	ext.sourceTrack.LoadScene(name)
 	return {'droppedOn': comp}
 
 # callbacks for when associated Panel is being dragged
@@ -63,9 +84,8 @@ def onDragStartGetItems(comp, info):
 	Returns:
 		A list of dragItems: [object1, object2, ...]
 	"""
-	# dragItems = [comp] # drag the comp itself
-	dragItems = [parent().par.Name.eval()]
-	debug('\nonDragStartGetItems comp:', comp.path, '- info:\n', info)
+	dragItems = [comp] # drag the comp itself
+	#debug('\nonDragStartGetItems comp:', comp.path, '- info:\n', info)
 	return dragItems
 
 def onDragEnd(comp, info):

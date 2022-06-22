@@ -102,5 +102,8 @@ class SceneLibrary:
 			if o.isTOP:
 				return o
 
+	def HasScene(self, name: str):
+		return self.sceneTable[name, 0] is not None
+
 	def Loadscenes(self, _=None): self.LoadScenes()
 	def Unloadscenes(self, _=None): self.UnloadScenes()
