@@ -35,8 +35,11 @@ class LiveRig:
 
 	def SwapTracks(self):
 		scene1 = iop.sourceTrack1.GetSceneName()
+		active1 = ipar.sourceTrack1.Active.eval()
 		scene2 = iop.sourceTrack2.GetSceneName()
-		debug(f'swapping tracks {scene1} and {scene2}')
+		active2 = ipar.sourceTrack2.Active.eval()
 		iop.sourceTrack1.LoadScene(scene2)
+		ipar.sourceTrack1.Active = active2
 		iop.sourceTrack2.LoadScene(scene1)
+		ipar.sourceTrack2.Active = active1
 		ipar.appState.Mixercrossfade *= -1
