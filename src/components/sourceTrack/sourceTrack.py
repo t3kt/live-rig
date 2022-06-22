@@ -31,3 +31,6 @@ class SourceTrack:
 	def LoadScene(self, name: Optional[str]):
 		_logger.info(f'LoadScene({name!r})')
 		self.ownerComp.par.Scenename = name or ''
+
+	def GetSceneName(self):
+		return self.ownerComp.par.Scenename.eval()
