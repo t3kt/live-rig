@@ -83,6 +83,9 @@ class SceneLibrary:
 			comp.nodeX = 200 + (200 * (i % 8))
 			comp.nodeY = -100 - (200 * int(i / 8))
 			self._attachSceneSettings(comp)
+		overrides = self.ownerComp.op('evalSceneOverrides')
+		overrides.allowCooking = False
+		overrides.allowCooking = True
 
 	@staticmethod
 	def _attachSceneSettings(comp: 'COMP'):

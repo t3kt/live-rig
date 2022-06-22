@@ -1,0 +1,3 @@
+path	parameter	value
+*	Resx Renderresx Renderresw	ipar.appState.Resx
+*	Resy Renderresy Renderresh	ipar.appState.Resy
