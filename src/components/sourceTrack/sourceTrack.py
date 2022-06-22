@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 # noinspection PyUnreachableCode
@@ -18,6 +19,8 @@ if False:
 	class _Comp(COMP):
 		par: _Par
 
+_logger = logging.getLogger(__name__)
+
 class SourceTrack:
 	def __init__(self, ownerComp: '_Comp'):
 		self.ownerComp = ownerComp
@@ -26,4 +29,5 @@ class SourceTrack:
 		pass
 
 	def LoadScene(self, name: Optional[str]):
+		_logger.info(f'LoadScene({name!r})')
 		self.ownerComp.par.Scenename = name or ''

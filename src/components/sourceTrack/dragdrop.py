@@ -23,14 +23,18 @@ def onHoverStartGetAccept(comp, info):
 	Returns:
 		True if comp can receive dragItems
 	"""
+	# debug('\nonHoverStartGetAccept comp:', comp.path, f'- info:\n', info)
 	items = info.get('dragItems') or []
 	if len(items) != 1:
 		return False
-	name = items[0]
-	# debug('\nonHoverStartGetAccept comp:', comp.path, f'- info:\n', info, f'scene: {name!r}\n')
+	sceneItem = items[0]
+	if not hasattr(sceneItem, 'par') or not sceneItem.par['Name']:
+		return False
+	name = sceneItem.par.Name.eval()
 	# return True # accept what is being dragged
-	exists = iop.sceneLibrary.HasScene(items[0])
-	debug(f'scene {name!r} exists: {exists}')
+	exists = iop.sceneLibrary.HasScene(name)
+	# debug(f'scene {name!r} exists: {exists}')
+	return exists
 
 def onHoverEnd(comp, info):
 	"""
@@ -62,11 +66,12 @@ def onDropGetResults(comp, info):
 			'dropChoice': drop menu choice selected
 			'modified': object modified by drop
 	"""
-	debug('\nonDropGetResults comp:', comp.path, '- info:\n', info)
+	# debug('\nonDropGetResults comp:', comp.path, '- info:\n', info)
 	items = info.get('dragItems') or []
 	if len(items) != 1:
 		return False
-	name = items[0]
+	sceneItem = items[0]
+	name = sceneItem.par.Name.eval()
 	ext.sourceTrack.LoadScene(name)
 	return {'droppedOn': comp}
 

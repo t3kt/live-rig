@@ -46,7 +46,7 @@ def onDropGetResults(comp, info):
 			'dropChoice': drop menu choice selected
 			'modified': object modified by drop
 	"""
-	debug('\nonDropGetResults comp:', comp.path, '- info:\n', info)
+	# debug('\nonDropGetResults comp:', comp.path, '- info:\n', info)
 	return {'droppedOn': comp}
 
 # callbacks for when associated Panel is being dragged
@@ -64,8 +64,8 @@ def onDragStartGetItems(comp, info):
 		A list of dragItems: [object1, object2, ...]
 	"""
 	# dragItems = [comp] # drag the comp itself
-	dragItems = [parent().par.Name.eval()]
-	debug('\nonDragStartGetItems comp:', comp.path, '- info:\n', info)
+	dragItems = [parent()]
+	# debug('\nonDragStartGetItems comp:', comp.path, '- info:\n', info)
 	return dragItems
 
 def onDragEnd(comp, info):
