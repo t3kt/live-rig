@@ -43,3 +43,11 @@ class LiveRig:
 		iop.sourceTrack2.LoadScene(scene1)
 		ipar.sourceTrack2.Active = active1
 		ipar.appState.Mixercrossfade *= -1
+
+	@staticmethod
+	def GetControlTargetSceneName():
+		for track in (iop.sourceTrack1, iop.sourceTrack2):
+			if track.par.Active:
+				name = track.GetSceneName()
+				if name:
+					return name
