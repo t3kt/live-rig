@@ -32,6 +32,9 @@ class LiveRig:
 			iop.config.OnStartup(self._startupStage, [stage + 1])
 		elif stage == 1:
 			iop.sceneLibrary.OnStartup(self._startupStage, [stage + 1])
+		elif stage == 2:
+			if not ui.performMode:
+				self.ownerComp.op('window').par.winopen.pulse()
 
 	def SwapTracks(self):
 		scene1 = iop.sourceTrack1.GetSceneName()
