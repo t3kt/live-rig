@@ -65,6 +65,13 @@ class SceneLibrary:
 		if not Path(expandedTox).exists():
 			_logger.warning(f'Tox file not found: {expandedTox}')
 			return None
+		existingComp = self.ownerComp.op(scene.name)
+		if existingComp:
+			_logger.warning(f'Replacing existing scene {existingComp}')
+			try:
+				existingComp.destroy()
+			except:
+				pass
 		comp = self.ownerComp.loadTox(expandedTox, unwired=True)
 		comp.name = scene.name
 		comp.tags.add(_sceneTag)
@@ -119,6 +126,7 @@ class SceneLibrary:
 		comp = self._loadSceneComp(scene, index=self.sceneTable.numRows)
 		if comp:
 			self._addOrReplaceSceneInTable(scene, comp)
+		return comp
 
 	def LoadSceneSpecs(self, scenes: List[SceneSpec]):
 		self._unloadSceneComps()
@@ -135,5 +143,25 @@ class SceneLibrary:
 			tox=tdu.collapsePath(tox),
 			thumb=tdu.collapsePath(thumbPath.as_posix()) if thumbPath.exists() else None,
 		)
-		self._loadSceneSpec(scene)
+		comp = self._loadSceneSpec(scene)
 		self._ensureSceneOverridesApplied()
+		return comp
+
+	@staticmethod
+	def GetValidDropFiles(dragItems: list):
+		files = []  # type: List[tdu.FileInfo]
+		for item in dragItems:
+			if isinstance(item, tdu.FileInfo):
+				if item.ext == '.tox':
+					files.append(item)
+		return files
+
+	def HandleDropFiles(self, dragItems: list):
+		files = self.GetValidDropFiles(dragItems)
+		if not files:
+			return {'droppedOn': self.ownerComp}
+		createdOps = []
+		for file in files:
+			comp = self.AddSceneTox(file.path)
+			createdOps.append(comp)
+		return {'droppedOn': self.ownerComp, 'createdOPs': createdOps}
