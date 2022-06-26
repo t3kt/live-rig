@@ -60,8 +60,12 @@ class SceneLibrary:
 
 	def _loadSceneComp(self, scene: SceneSpec, index: int):
 		tox = tdu.collapsePath(scene.tox)
-		_logger.info(f'Loading tox {tox!r}, name: {scene.name!r}')
-		comp = self.ownerComp.loadTox(tox, unwired=True)
+		expandedTox = tdu.expandPath(scene.tox)
+		_logger.info(f'Loading tox {tox!r}, name: {scene.name!r}, expanded path: {expandedTox}')
+		if not Path(expandedTox).exists():
+			_logger.warning(f'Tox file not found: {expandedTox}')
+			return None
+		comp = self.ownerComp.loadTox(expandedTox, unwired=True)
 		comp.name = scene.name
 		comp.tags.add(_sceneTag)
 		comp.par.externaltox = tox
@@ -113,7 +117,8 @@ class SceneLibrary:
 
 	def _loadSceneSpec(self, scene: SceneSpec):
 		comp = self._loadSceneComp(scene, index=self.sceneTable.numRows)
-		self._addOrReplaceSceneInTable(scene, comp)
+		if comp:
+			self._addOrReplaceSceneInTable(scene, comp)
 
 	def LoadSceneSpecs(self, scenes: List[SceneSpec]):
 		self._unloadSceneComps()
