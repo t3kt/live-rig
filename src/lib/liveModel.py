@@ -88,7 +88,9 @@ def applyParVal(par: 'Par', val):
 			return
 	par.val = val
 
-def applyParVals(pars: 'List[Par]', vals: dict):
+def applyParVals(pars: 'List[Par]', vals: dict, applyDefaults: bool):
 	for par in pars:
 		if par.name in vals:
 			applyParVal(par, vals[par.name])
+		elif applyDefaults:
+			par.val = par.default

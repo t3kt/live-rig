@@ -18,6 +18,8 @@ if False:
 	class _Comp(COMP):
 		par: _Pars
 
+	from state.stateManager import StateManager
+	iop.appState = StateManager(COMP())
 	from sceneLibrary.sceneLibrary import SceneLibrary
 	iop.sceneLibrary = SceneLibrary(COMP())
 
@@ -39,6 +41,7 @@ class Config:
 			sceneDir=self.ownerComp.par.Scenedir.eval(),
 			mappingsFile=self.ownerComp.par.Mappingsfile.eval(),
 			scenes=iop.sceneLibrary.GetSceneSpecs(),
+			settings=iop.appState.GetStateParameterVals(),
 		)
 
 	def _loadLiveSet(self, file: str):
@@ -46,9 +49,17 @@ class Config:
 		text = Path(file).read_text()
 		liveSet = LiveSet.parseFromText(text)
 		self.ownerComp.par.Setname = liveSet.name or ''
-		self.ownerComp.par.Scenedir = liveSet.sceneDir or ''
+		self._setSceneDir(liveSet.sceneDir)
 		self.ownerComp.par.Mappingsfile = liveSet.mappingsFile or ''
 		iop.sceneLibrary.LoadSceneSpecs(liveSet.scenes or [])
+		iop.appState.ApplyStateParameterVals(liveSet.settings)
+
+	def _setSceneDir(self, sceneDir: str):
+		self.ownerComp.par.Scenedir = sceneDir or ''
+		if sceneDir:
+			project.paths['scenes'] = sceneDir
+		elif 'scenes' in project.paths:
+			del project.paths['scenes']
 
 	def _saveLiveSet(self, file: str):
 		liveSet = self._buildLiveSet()
@@ -98,7 +109,7 @@ class Config:
 				return
 			self.ownerComp.par.Setname = name
 			self.ownerComp.par.Setfile = file
-			self.ownerComp.par.Scenedir = sceneDir
+			self._setSceneDir(sceneDir)
 			iop.sceneLibrary.UnloadScenes()
 		showPromptDialog(
 			title='New Live Set',

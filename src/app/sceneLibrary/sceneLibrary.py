@@ -23,43 +23,21 @@ class SceneLibrary:
 	def __init__(self, ownerComp: 'COMP'):
 		# noinspection PyTypeChecker
 		self.ownerComp = ownerComp  # type: _Comp
-		self.sceneFolder = ownerComp.op('sceneFolder')  # type: DAT
 		self.sceneTable = ownerComp.op('sceneTable')  # type: tableDAT
 
 	def OnStartup(self, thenRun: Callable = None, runArgs: list = None):
-		self.LoadScenes()
 		# TODO: init
 		queueCall(thenRun, runArgs)
-
-	def LoadScenes(self):
-		_logger.info('Loading scenes')
-		folder = self.sceneFolder
-		folder.par.refreshpulse.pulse()
-		self._unloadSceneComps()
-		self._loadSceneComps()
-		self._rebuildSceneTable()
 
 	def UnloadScenes(self):
 		_logger.info('Unloading scenes')
 		self._unloadSceneComps()
-		self._rebuildSceneTable()
+		self._initializeSceneTable()
 
-	def _rebuildSceneTable(self):
-		_logger.info('Rebuilding scene table')
+	def _initializeSceneTable(self):
 		table = self.sceneTable
 		table.clear()
 		table.appendRow(['name', 'tox', 'comp', 'videoOut', 'thumbFile'])
-		comps = self._findSceneComps()
-		for comp in sorted(comps, key=lambda c: c.name):
-			tox = comp.par.externaltox.eval()  # type: str
-			thumbPath = Path(tox.replace('.tox', '.png'))
-			table.appendRow([
-				comp.name,
-				comp.par.externaltox,
-				comp.path,
-				self._findSceneOutput(comp) or '',
-				thumbPath.as_posix() if thumbPath.exists() else '',
-			])
 
 	def _findSceneComps(self):
 		return self.ownerComp.findChildren(tags=[_sceneTag], depth=1)
@@ -75,30 +53,23 @@ class SceneLibrary:
 			except:
 				pass
 
-	def _loadSceneComps(self):
-		folder = self.sceneFolder
-		_logger.info(f'Loading {folder.numRows - 1} scene comps')
-		sceneDir = self.ownerComp.par.Scenedir.eval()
-		for i in range(1, folder.numRows):
-			tox = sceneDir + '/' + folder[i, 'relpath'].val
-			name = folder[i, 'basename'].val
-			_logger.info(f'Loading tox {tox!r}, name: {name!r}')
-			comp = self.ownerComp.loadTox(tox, unwired=True)
-			comp.name = name
-			if _sceneTag not in comp.tags:
-				comp.tags.add(_sceneTag)
-			comp.par.externaltox = tox
-			comp.par.reloadcustom = True
-			comp.nodeX = 200 + (200 * (i % 8))
-			comp.nodeY = -100 - (200 * int(i / 8))
-			self._attachSceneSettings(comp)
+	def _ensureSceneOverridesApplied(self):
 		overrides = self.ownerComp.op('evalSceneOverrides')
 		overrides.export = False
 		overrides.export = True
 
-	def _loadSceneComp(self, tox: str, index: int):
-		toxPath = Path(self.ownerComp.par.Scenedir.eval() + '/' + tox)
-		raise NotImplementedError()
+	def _loadSceneComp(self, scene: SceneSpec, index: int):
+		tox = tdu.collapsePath(scene.tox)
+		_logger.info(f'Loading tox {tox!r}, name: {scene.name!r}')
+		comp = self.ownerComp.loadTox(tox, unwired=True)
+		comp.name = scene.name
+		comp.tags.add(_sceneTag)
+		comp.par.externaltox = tox
+		comp.par.reloadcustom = True
+		comp.nodeX = 200 + (200 * (index % 8))
+		comp.nodeY = -100 - (200 * int(index / 8))
+		self._attachSceneSettings(comp)
+		return comp
 
 	@staticmethod
 	def _attachSceneSettings(comp: 'COMP'):
@@ -118,7 +89,6 @@ class SceneLibrary:
 	def HasScene(self, name: str):
 		return self.sceneTable[name, 0] is not None
 
-	def Loadscenes(self, _=None): self.LoadScenes()
 	def Unloadscenes(self, _=None): self.UnloadScenes()
 
 	def GetSceneSpecs(self):
@@ -126,16 +96,39 @@ class SceneLibrary:
 		return [
 			SceneSpec(
 				name=table[i, 'name'].val,
-				tox=table[i, 'tox'].val,
-				thumb=table[i, 'thumbFile'].val,
+				tox=tdu.collapsePath(table[i, 'tox'].val),
+				thumb=tdu.collapsePath(table[i, 'thumbFile'].val),
 			)
 			for i in range(1, table.numRows)
 		]
 
+	def _addOrReplaceSceneInTable(self, scene: SceneSpec, comp: 'COMP'):
+		table = self.sceneTable
+		if not self.HasScene(scene.name):
+			table.appendRow([scene.name])
+		table[scene.name, 'tox'] = scene.tox
+		table[scene.name, 'comp'] = comp.path
+		table[scene.name, 'videoOut'] = self._findSceneOutput(comp) or ''
+		table[scene.name, 'thumbFile'] = scene.thumb or ''
+
+	def _loadSceneSpec(self, scene: SceneSpec):
+		comp = self._loadSceneComp(scene, index=self.sceneTable.numRows)
+		self._addOrReplaceSceneInTable(scene, comp)
+
 	def LoadSceneSpecs(self, scenes: List[SceneSpec]):
-		self.UnloadScenes()
-		pass
-		raise NotImplementedError()
+		self._unloadSceneComps()
+		self._initializeSceneTable()
+		for scene in scenes:
+			self._loadSceneSpec(scene)
+		self._ensureSceneOverridesApplied()
 
 	def AddSceneTox(self, tox: str):
-		raise NotImplementedError()
+		name = Path(tox).stem
+		thumbPath = Path(tox).parent / (name + '.png')
+		scene = SceneSpec(
+			name=name,
+			tox=tdu.collapsePath(tox),
+			thumb=tdu.collapsePath(thumbPath.as_posix()) if thumbPath.exists() else None,
+		)
+		self._loadSceneSpec(scene)
+		self._ensureSceneOverridesApplied()
