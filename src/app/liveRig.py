@@ -54,3 +54,6 @@ class LiveRig:
 				name = track.GetSceneName()
 				if name:
 					return name
+
+	def SaveLiveSet(self):
+		pass

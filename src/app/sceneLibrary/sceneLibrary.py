@@ -1,19 +1,28 @@
 from liveCommon import queueCall
+from liveModel import SceneSpec
 import logging
 from pathlib import Path
-from typing import Callable
+from typing import Callable, List
 
 # noinspection PyUnreachableCode
 if False:
 	# noinspection PyUnresolvedReferences
 	from _stubs import *
+	from _typeAliases import *
+
+	class _Par:
+		Scenedir: StrParamT
+	class _Comp(COMP):
+		par: _Par
+
 
 _sceneTag = 'scene'
 _logger = logging.getLogger(__name__)
 
 class SceneLibrary:
 	def __init__(self, ownerComp: 'COMP'):
-		self.ownerComp = ownerComp
+		# noinspection PyTypeChecker
+		self.ownerComp = ownerComp  # type: _Comp
 		self.sceneFolder = ownerComp.op('sceneFolder')  # type: DAT
 		self.sceneTable = ownerComp.op('sceneTable')  # type: tableDAT
 
@@ -71,7 +80,7 @@ class SceneLibrary:
 		_logger.info(f'Loading {folder.numRows - 1} scene comps')
 		sceneDir = self.ownerComp.par.Scenedir.eval()
 		for i in range(1, folder.numRows):
-			tox = sceneDir + '/' + folder[i, 'relpath']
+			tox = sceneDir + '/' + folder[i, 'relpath'].val
 			name = folder[i, 'basename'].val
 			_logger.info(f'Loading tox {tox!r}, name: {name!r}')
 			comp = self.ownerComp.loadTox(tox, unwired=True)
@@ -86,6 +95,10 @@ class SceneLibrary:
 		overrides = self.ownerComp.op('evalSceneOverrides')
 		overrides.export = False
 		overrides.export = True
+
+	def _loadSceneComp(self, tox: str, index: int):
+		toxPath = Path(self.ownerComp.par.Scenedir.eval() + '/' + tox)
+		raise NotImplementedError()
 
 	@staticmethod
 	def _attachSceneSettings(comp: 'COMP'):
@@ -107,3 +120,22 @@ class SceneLibrary:
 
 	def Loadscenes(self, _=None): self.LoadScenes()
 	def Unloadscenes(self, _=None): self.UnloadScenes()
+
+	def GetSceneSpecs(self):
+		table = self.sceneTable
+		return [
+			SceneSpec(
+				name=table[i, 'name'].val,
+				tox=table[i, 'tox'].val,
+				thumb=table[i, 'thumbFile'].val,
+			)
+			for i in range(1, table.numRows)
+		]
+
+	def LoadSceneSpecs(self, scenes: List[SceneSpec]):
+		self.UnloadScenes()
+		pass
+		raise NotImplementedError()
+
+	def AddSceneTox(self, tox: str):
+		raise NotImplementedError()
