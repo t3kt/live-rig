@@ -16,6 +16,8 @@ if False:
 	iop.sourceTrack1 = SourceTrack(COMP())
 	# noinspection PyTypeChecker
 	iop.sourceTrack2 = SourceTrack(COMP())
+	from mixer.mixer import Mixer
+	iop.mixer = Mixer(COMP())
 
 class LiveRig:
 	def __init__(self, ownerComp: 'COMP'):
@@ -45,7 +47,7 @@ class LiveRig:
 		ipar.sourceTrack1.Active = active2
 		iop.sourceTrack2.LoadScene(scene1)
 		ipar.sourceTrack2.Active = active1
-		ipar.appState.Mixercrossfade *= -1
+		iop.mixer.SwapTracks()
 
 	@staticmethod
 	def GetControlTargetSceneName():
@@ -54,3 +56,15 @@ class LiveRig:
 				name = track.GetSceneName()
 				if name:
 					return name
+
+	@staticmethod
+	def GetWidthWeightForTrack(trackNum: int):
+		active1 = ipar.sourceTrack1.Active.eval()
+		active2 = ipar.sourceTrack2.Active.eval()
+		if active1 and active2:
+			return 1
+		if trackNum == 2 and active1:
+			return 0.3
+		if trackNum == 1 and active2:
+			return 0.3
+		return 1
