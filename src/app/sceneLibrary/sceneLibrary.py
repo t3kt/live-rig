@@ -80,6 +80,8 @@ class SceneLibrary:
 		comp.nodeX = 200 + (200 * (index % 8))
 		comp.nodeY = -100 - (200 * int(index / 8))
 		self._attachSceneSettings(comp)
+		output = self._findSceneOutput(comp)
+		output.cook()
 		return comp
 
 	@staticmethod
