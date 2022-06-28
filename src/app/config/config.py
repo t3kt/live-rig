@@ -25,6 +25,9 @@ if False:
 	from statusDisplay.statusDisplay import StatusDisplay
 	iop.statusDisplay = StatusDisplay(COMP())
 
+def _showMessage(text: str):
+	iop.statusDisplay.ShowMessage(text)
+
 class Config:
 	def __init__(self, ownerComp: 'COMP'):
 		# noinspection PyTypeChecker
@@ -46,15 +49,33 @@ class Config:
 			settings=iop.appState.GetStateParameterVals(),
 		)
 
-	def _loadLiveSet(self, file: str):
+	def _loadLiveSet(self, file: str, thenRun: Callable):
 		self.ownerComp.par.Setfile = file
 		text = Path(file).read_text()
 		liveSet = LiveSet.parseFromText(text)
-		self.ownerComp.par.Setname = liveSet.name or ''
-		self._setSceneDir(liveSet.sceneDir)
-		self.ownerComp.par.Mappingsfile = liveSet.mappingsFile or ''
-		iop.sceneLibrary.LoadSceneSpecs(liveSet.scenes or [])
-		iop.appState.ApplyStateParameterVals(liveSet.settings)
+		_showMessage(f'Loading live set from {tdu.expandPath(file)}')
+		queueCall(self._loadLiveSet_stage, [liveSet, 0, thenRun])
+
+	def _loadLiveSet_stage(self, liveSet: LiveSet, stage: int, thenRun: Callable):
+		if stage == 0:
+			self.ownerComp.par.Setname = liveSet.name or ''
+		elif stage == 1:
+			self._setSceneDir(liveSet.sceneDir)
+		elif stage == 2:
+			_showMessage(f'Loading mappings from {liveSet.mappingsFile or "-"}')
+			self.ownerComp.par.Mappingsfile = liveSet.mappingsFile or ''
+		elif stage == 3:
+			scenes = liveSet.scenes or []
+			_showMessage(f'Loading {len(scenes)} scenes')
+			iop.sceneLibrary.LoadSceneSpecs(scenes, thenRun)
+			return
+		elif stage == 4:
+			_showMessage('Loading settings')
+			iop.appState.ApplyStateParameterVals(liveSet.settings)
+		else:
+			queueCall(thenRun)
+			return
+		queueCall(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun])
 
 	def _setSceneDir(self, sceneDir: str):
 		self.ownerComp.par.Scenedir = sceneDir or ''
@@ -67,7 +88,7 @@ class Config:
 		liveSet = self._buildLiveSet()
 		liveSet.writeToFile(file)
 		self.ownerComp.par.Setfile = file
-		iop.statusDisplay.ShowMessage(f'Saved live set to {tdu.expandPath(file)}')
+		_showMessage(f'Saved live set to {tdu.expandPath(file)}')
 
 	def SaveLiveSet(self, showFilePrompt: bool):
 		file = self.ownerComp.par.Setfile.eval()
@@ -90,8 +111,9 @@ class Config:
 			title='Open Live Set',
 		)
 		if file:
-			self._loadLiveSet(file)
-			iop.statusDisplay.ShowMessage(f'Opened live set {tdu.expandPath(file)}')
+			def done():
+				_showMessage(f'Opened live set {tdu.expandPath(file)}')
+			self._loadLiveSet(file, thenRun=done)
 
 	def NewLiveSet(self):
 		def onContinue(name):
@@ -115,7 +137,7 @@ class Config:
 			self.ownerComp.par.Setfile = file
 			self._setSceneDir(sceneDir)
 			iop.sceneLibrary.UnloadScenes()
-			iop.statusDisplay.ShowMessage(f'Started new live set {name} in {tdu.expandPath(file)}')
+			_showMessage(f'Started new live set {name} in {tdu.expandPath(file)}')
 		showPromptDialog(
 			title='New Live Set',
 			text='Live Set Name',

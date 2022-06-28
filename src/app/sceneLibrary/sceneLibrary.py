@@ -14,6 +14,11 @@ if False:
 		Scenedir: StrParamT
 	class _Comp(COMP):
 		par: _Par
+	from statusDisplay.statusDisplay import StatusDisplay
+	iop.statusDisplay = StatusDisplay(COMP())
+
+def _showMessage(text: str):
+	iop.statusDisplay.ShowMessage(text)
 
 
 _sceneTag = 'scene'
@@ -130,12 +135,31 @@ class SceneLibrary:
 			self._addOrReplaceSceneInTable(scene, comp)
 		return comp
 
-	def LoadSceneSpecs(self, scenes: List[SceneSpec]):
-		self._unloadSceneComps()
-		self._initializeSceneTable()
-		for scene in scenes:
-			self._loadSceneSpec(scene)
-		self._ensureSceneOverridesApplied()
+	def LoadSceneSpecs(self, scenes: List[SceneSpec], thenRun: Callable = None):
+		queueCall(self._loadSceneSpecs_stage, [0, scenes, len(scenes), thenRun])
+
+	def _loadSceneSpecs_stage(self, stage: int, scenes: List[SceneSpec], totalScenes: int, thenRun: Callable):
+		if stage == 0:
+			_showMessage('Unloading scenes')
+			self._unloadSceneComps()
+			self._initializeSceneTable()
+			queueCall(self._loadSceneSpecs_stage, [stage + 1, scenes, totalScenes, thenRun])
+		elif stage == 1:
+			if scenes:
+				scene = scenes.pop()
+				sceneIndex = self.sceneTable.numRows
+				_showMessage(f'Loading scene [{sceneIndex} / {totalScenes}] {scene.name} from {tdu.expandPath(scene.tox)}')
+				self._loadSceneSpec(scene)
+				queueCall(self._loadSceneSpecs_stage, [stage, scenes, totalScenes, thenRun])
+			else:
+				queueCall(self._loadSceneSpecs_stage, [stage + 1, [], totalScenes, thenRun])
+		elif stage == 2:
+			_showMessage('Attaching scene overrides')
+			self._ensureSceneOverridesApplied()
+			queueCall(self._loadSceneSpecs_stage, [stage + 1, [], totalScenes, thenRun])
+		else:
+			_showMessage('Finished loading scenes')
+			queueCall(thenRun)
 
 	def AddSceneTox(self, tox: str):
 		name = Path(tox).stem
