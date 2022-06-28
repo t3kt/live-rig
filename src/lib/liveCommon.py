@@ -6,13 +6,16 @@ if False:
 	from _stubs import *
 	from _stubs.PopDialogExt import PopDialogExt
 
-def queueCall(action: Callable, args: list = None, delayFrames=5, delayRef=None):
+def queueCall(
+		action: Callable, args: list = None,
+		delayFrames=5, delayMilliSeconds=0, delayRef=None
+) -> 'Optional[Run]':
 	if not action:
 		return
-	run(
+	return run(
 		'args[0](*(args[1:]))',
 		action, *(args or []),
-		delayFrames=delayFrames, delayRef=delayRef or root)
+		delayFrames=delayFrames, delayMilliSeconds=delayMilliSeconds, delayRef=delayRef or root)
 
 def getActiveEditor() -> 'NetworkEditor':
 	pane = ui.panes.current

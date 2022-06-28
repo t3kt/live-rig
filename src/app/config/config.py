@@ -22,6 +22,8 @@ if False:
 	iop.appState = StateManager(COMP())
 	from sceneLibrary.sceneLibrary import SceneLibrary
 	iop.sceneLibrary = SceneLibrary(COMP())
+	from statusDisplay.statusDisplay import StatusDisplay
+	iop.statusDisplay = StatusDisplay(COMP())
 
 class Config:
 	def __init__(self, ownerComp: 'COMP'):
@@ -65,6 +67,7 @@ class Config:
 		liveSet = self._buildLiveSet()
 		liveSet.writeToFile(file)
 		self.ownerComp.par.Setfile = file
+		iop.statusDisplay.ShowMessage(f'Saved live set to {tdu.expandPath(file)}')
 
 	def SaveLiveSet(self, showFilePrompt: bool):
 		file = self.ownerComp.par.Setfile.eval()
@@ -88,6 +91,7 @@ class Config:
 		)
 		if file:
 			self._loadLiveSet(file)
+			iop.statusDisplay.ShowMessage(f'Opened live set {tdu.expandPath(file)}')
 
 	def NewLiveSet(self):
 		def onContinue(name):
@@ -111,6 +115,7 @@ class Config:
 			self.ownerComp.par.Setfile = file
 			self._setSceneDir(sceneDir)
 			iop.sceneLibrary.UnloadScenes()
+			iop.statusDisplay.ShowMessage(f'Started new live set {name} in {tdu.expandPath(file)}')
 		showPromptDialog(
 			title='New Live Set',
 			text='Live Set Name',
