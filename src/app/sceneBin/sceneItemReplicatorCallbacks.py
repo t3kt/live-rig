@@ -18,4 +18,5 @@ def onReplicate(comp, allOps, newOps, template, master):
 		c.par.display = 1
 		c.par.Name = template[i+1, 'name']
 		c.par.Thumbfile = template[i+1, 'thumbFile']
+		c.par.Toxfile = template[i+1, 'tox']
 

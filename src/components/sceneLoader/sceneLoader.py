@@ -1,4 +1,5 @@
 from liveCommon import queueCall
+from typing import Optional
 
 # noinspection PyUnreachableCode
 if False:
@@ -16,16 +17,29 @@ class SceneLoader:
 
 	def _mode(self): return self.ownerComp.par.Loadermode.eval()
 
+	def GetSceneComp(self) -> 'Optional[COMP]':
+		mode = self._mode()
+		if mode == 'engine':
+			if self.engine.par.file:
+				return self.engine
+		elif mode == 'inline':
+			for o in self._getAllInlineSceneComps():
+				return o
+
+	def _getAllInlineSceneComps(self):
+		for o in self.ownerComp.children:
+			if _sceneTag in o.tags:
+				yield o
+
 	def UnloadScene(self):
 		self.engine.par.unload.pulse()
 		self.engine.par.file = ''
 		self.engine.par.play = False
-		for o in self.ownerComp.children:
-			if _sceneTag in o.tags:
-				try:
-					o.destroy()
-				except:
-					pass
+		for o in self._getAllInlineSceneComps():
+			try:
+				o.destroy()
+			except:
+				pass
 		self.ownerComp.par.Scenetox = ''
 		self.videoOutSelect.par.top = ''
 		self.infoTable.clear()
@@ -46,6 +60,7 @@ class SceneLoader:
 			comp.tags.add(_sceneTag)
 			videoOut = self._findSceneOutput(comp)
 			self.videoOutSelect.par.top = videoOut or ''
+			self._ensureOverridesAreApplied()
 		elif mode == 'engine':
 			self.engine.par.file = tdu.expandPath(tox)
 			self.engine.par.initialize.pulse()
@@ -63,4 +78,12 @@ class SceneLoader:
 	def onEngineInitialize(self):
 		videoOut = self._findSceneOutput(self.engine)
 		self.videoOutSelect.par.top = videoOut or ''
+		self._ensureOverridesAreApplied()
 
+	def _ensureOverridesAreApplied(self):
+		queueCall(lambda: self._updateOverrideState(False), delayFrames=30)
+		queueCall(lambda: self._updateOverrideState(True), delayFrames=60)
+
+	def _updateOverrideState(self, active: bool):
+		for o in self.ownerComp.ops('sceneOverrides', 'controlValues'):
+			o.export = active

@@ -72,7 +72,8 @@ def onDropGetResults(comp, info):
 		return False
 	sceneItem = items[0]
 	name = sceneItem.par.Name.eval()
-	ext.sourceTrack.LoadScene(name)
+	tox = sceneItem.par.Toxfile.eval()
+	ext.sourceTrack.LoadScene(name, tox)
 	return {'droppedOn': comp}
 
 # callbacks for when associated Panel is being dragged
