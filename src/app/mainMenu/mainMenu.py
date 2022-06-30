@@ -43,7 +43,36 @@ class MainMenu:
 					action=lambda: iop.config.SaveLiveSet(showFilePrompt=True),
 				),
 			],
-			'Edit': [],
+			'View': [
+				_parToggler(
+					'showAudioPanel',
+					'Show Audio Panel',
+					menuName='View',
+					getPar=lambda: ipar.appState.Showaudiopanel,
+					checked='ipar.appState.Showaudiopanel',
+				),
+				_parToggler(
+					'showControlPanel',
+					'Show Control Panel',
+					menuName='View',
+					getPar=lambda: ipar.appState.Showcontrolpanel,
+					checked='ipar.appState.Showcontrolpanel',
+				),
+				_parToggler(
+					'showEffectsPanel',
+					'Show Effects Panel',
+					menuName='View',
+					getPar=lambda: ipar.appState.Showeffectspanel,
+					checked='ipar.appState.Showeffectspanel',
+				),
+				_parToggler(
+					'showOutputPanel',
+					'Show Output Panel',
+					menuName='View',
+					getPar=lambda: ipar.appState.Showoutputpanel,
+					checked='ipar.appState.Showoutputpanel',
+				),
+			],
 			'Tools': [],
 		}
 
@@ -85,6 +114,7 @@ class MainMenu:
 def _parToggler(
 		name: str,
 		label: str,
+		menuName: str,
 		getPar: 'Callable[[], Par]',
 		checked: str,
 		**kwargs):
@@ -95,6 +125,7 @@ def _parToggler(
 	return _MenuItem(
 		name,
 		label,
+		menuName,
 		checked=checked,
 		action=action,
 		**kwargs,
