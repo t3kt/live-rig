@@ -38,17 +38,6 @@ class LiveRig:
 			if not ui.performMode:
 				self.ownerComp.op('window').par.winopen.pulse()
 
-	def SwapTracks(self):
-		scene1 = iop.sourceTrack1.GetSceneName()
-		active1 = ipar.sourceTrack1.Active.eval()
-		scene2 = iop.sourceTrack2.GetSceneName()
-		active2 = ipar.sourceTrack2.Active.eval()
-		iop.sourceTrack1.LoadScene(scene2)
-		ipar.sourceTrack1.Active = active2
-		iop.sourceTrack2.LoadScene(scene1)
-		ipar.sourceTrack2.Active = active1
-		iop.mixer.SwapTracks()
-
 	@staticmethod
 	def GetControlTargetSceneName():
 		for track in (iop.sourceTrack1, iop.sourceTrack2):
@@ -56,15 +45,3 @@ class LiveRig:
 				name = track.GetSceneName()
 				if name:
 					return name
-
-	@staticmethod
-	def GetWidthWeightForTrack(trackNum: int):
-		active1 = ipar.sourceTrack1.Active.eval()
-		active2 = ipar.sourceTrack2.Active.eval()
-		if active1 and active2:
-			return 1
-		if trackNum == 2 and active1:
-			return 0.3
-		if trackNum == 1 and active2:
-			return 0.3
-		return 1
