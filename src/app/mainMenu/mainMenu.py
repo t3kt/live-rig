@@ -72,6 +72,13 @@ class MainMenu:
 					getPar=lambda: ipar.appState.Showoutputpanel,
 					checked='int(ipar.appState.Showoutputpanel)',
 				),
+				_parToggler(
+					'showSceneBin',
+					'Show Scene Bin',
+					menuName='View',
+					getPar=lambda: ipar.appState.Showscenebin,
+					checked='int(ipar.appState.Showscenebin)',
+				),
 			],
 			'Tools': [],
 		}
