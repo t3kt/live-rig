@@ -54,3 +54,8 @@ class SourceTrack:
 		comp = self.GetSceneComp()
 		if comp:
 			navigateTo(comp, popup=ui.performMode)
+
+	def onMappingsChanged(self):
+		comp = self.GetSceneComp()
+		if comp and comp.par['Installbindings'] is not None:
+			comp.par.Installbindings.pulse()
