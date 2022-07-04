@@ -6,6 +6,15 @@ if False:
 	from _stubs import *
 	from _stubs.PopDialogExt import PopDialogExt
 
+class Action:
+	def __init__(self, func: Optional[Callable], args: list = None):
+		self.func = func
+		self.args = args
+
+	def __call__(self, *args, **kwargs):
+		if self.func:
+			self.func(*self.args, *args, **kwargs)
+
 def queueCall(
 		action: Callable, args: list = None,
 		delayFrames=5, delayMilliSeconds=0, delayRef=None

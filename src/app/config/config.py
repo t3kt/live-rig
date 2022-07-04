@@ -1,4 +1,4 @@
-from liveCommon import queueCall, showPromptDialog
+from liveCommon import Action, queueCall, showPromptDialog
 from liveModel import LiveSet
 from pathlib import Path
 from typing import Callable
@@ -65,13 +65,13 @@ class Config:
 			_showMessage(f'Loading mappings from {liveSet.mappingsFile or "-"}')
 			self.ownerComp.par.Mappingsfile = liveSet.mappingsFile or ''
 		elif stage == 3:
-			scenes = liveSet.scenes or []
-			_showMessage(f'Loading {len(scenes)} scenes')
-			iop.sceneLibrary.LoadSceneSpecs(scenes, thenRun)
-			return
-		elif stage == 4:
 			_showMessage('Loading settings')
 			iop.appState.ApplyStateParameterVals(liveSet.settings)
+		elif stage == 4:
+			scenes = liveSet.scenes or []
+			_showMessage(f'Loading {len(scenes)} scenes')
+			iop.sceneLibrary.LoadSceneSpecs(scenes, Action(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun]))
+			return
 		else:
 			queueCall(thenRun)
 			return
@@ -79,7 +79,7 @@ class Config:
 
 	def _setSceneDir(self, sceneDir: str):
 		self.ownerComp.par.Scenedir = sceneDir or ''
-		if sceneDir:
+		if sceneDir and 'scenes' not in project.paths:
 			project.paths['scenes'] = sceneDir
 		elif 'scenes' in project.paths:
 			del project.paths['scenes']

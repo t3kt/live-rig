@@ -1,4 +1,6 @@
+import json
 from liveModel import applyParVals, extractParVals
+import logging
 
 # noinspection PyUnreachableCode
 if False:
@@ -15,11 +17,14 @@ if False:
 	# noinspection PyTypeChecker
 	iop.sourceTrack2 = SourceTrack(COMP())
 
+_logger = logging.getLogger(__name__)
+
 class StateManager:
 	def __init__(self, ownerComp: 'COMP'):
 		self.ownerComp = ownerComp
 
 	def GetStateParameterVals(self):
+		self._gatherPaths()
 		pars = list(sorted(
 			self.ownerComp.customPars,
 			key=lambda p: p.name
@@ -31,3 +36,17 @@ class StateManager:
 
 	def ApplyStateParameterVals(self, vals: dict):
 		applyParVals(self.ownerComp.customPars, vals or {}, applyDefaults=True)
+		self._applyPaths()
+
+	def _applyPaths(self):
+		pathsJson = self.ownerComp.par.Paths.eval()
+		paths = json.loads(pathsJson) if pathsJson else {}
+		print(f'Applying paths: {paths!r}')
+		project.paths.clear()
+		for name, path in paths.items():
+			project.paths[name] = path
+		print(f'Finalized project paths: {project.paths!r}')
+
+	def _gatherPaths(self):
+		pathsJson = json.dumps(project.paths) if project.paths else ''
+		self.ownerComp.par.Paths = pathsJson
