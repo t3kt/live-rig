@@ -14,6 +14,7 @@ class SceneLoader:
 		self.engine = ownerComp.op('engine')
 		self.infoTable = ownerComp.op('setInfo')  # type: tableDAT
 		self.videoOutSelect = ownerComp.op('selVideoOut')  # type: TOP
+		self.bindChannelsOutSelect = ownerComp.op('selBindChannelsOut')  # type: CHOP
 
 	def _mode(self): return self.ownerComp.par.Loadermode.eval()
 
@@ -42,8 +43,9 @@ class SceneLoader:
 				pass
 		self.ownerComp.par.Scenetox = ''
 		self.videoOutSelect.par.top = ''
+		self.bindChannelsOutSelect.par.chops = ''
 		self.infoTable.clear()
-		self.infoTable.appendCol(['tox'])
+		self.infoTable.appendCol(['tox', 'comp'])
 		self.infoTable.appendCol([])
 
 	def Unloadscene(self, _=None):
@@ -58,9 +60,10 @@ class SceneLoader:
 			comp = self.ownerComp.loadTox(tdu.expandPath(tox), unwired=True)
 			comp.name = 'scene'
 			comp.tags.add(_sceneTag)
-			videoOut = self._findSceneOutput(comp)
-			self.videoOutSelect.par.top = videoOut or ''
-			self._ensureOverridesAreApplied()
+			self.videoOutSelect.par.top = self._findSceneOutput(comp) or ''
+			self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(comp) or ''
+			self.infoTable['comp', 1] = comp.path
+			self._applyOverridesAndInit()
 		elif mode == 'engine':
 			self.engine.par.file = tdu.expandPath(tox)
 			self.engine.par.initialize.pulse()
@@ -75,14 +78,31 @@ class SceneLoader:
 			if o.isTOP:
 				return o
 
-	def onEngineInitialize(self):
-		videoOut = self._findSceneOutput(self.engine)
-		self.videoOutSelect.par.top = videoOut or ''
-		self._ensureOverridesAreApplied()
+	@staticmethod
+	def _findBindChannelsOut(comp: 'COMP'):
+		for o in comp.ops('bind_channels_out', 'bindChannels_out', 'bindChannelsOut'):
+			if o.isCHOP:
+				return o
+		for o in comp.outputs:
+			if o.isCHOP and 'bind' in o.name.lower():
+				return o
 
-	def _ensureOverridesAreApplied(self):
+	def onEngineInitialize(self):
+		self.videoOutSelect.par.top = self._findSceneOutput(self.engine) or ''
+		self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(self.engine) or ''
+		self.infoTable['comp', 1] = self.engine.path
+		self._applyOverridesAndInit()
+
+	@staticmethod
+	def _triggerInit(comp: 'COMP'):
+		for p in comp.pars('Init', 'Installbindings'):
+			if p.isPulse or p.isMomentary:
+				p.pulse()
+
+	def _applyOverridesAndInit(self):
 		queueCall(lambda: self._updateOverrideState(False), delayFrames=30)
 		queueCall(lambda: self._updateOverrideState(True), delayFrames=60)
+		queueCall(lambda: self._triggerInit(self.engine), delayFrames=90)
 
 	def _updateOverrideState(self, active: bool):
 		for o in self.ownerComp.ops('sceneOverrides', 'controlValues'):
