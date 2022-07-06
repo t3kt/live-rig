@@ -1,3 +1,5 @@
 name	label
 sourceTrack1	Track 1
 sourceTrack2	Track 2
+timing	Timing
+settingsPanel	Settings
