@@ -58,7 +58,6 @@ class LiveSet(_ModelObject):
 	yaml_tag = '!liveSet'
 
 	name: Optional[str] = None
-	sceneDir: Optional[str] = None
 	scenes: List[SceneSpec] = field(default_factory=list)
 	settings: Dict[str, Any] = field(default_factory=dict)
 	mappingsFile: Optional[str] = None

@@ -8,12 +8,7 @@ from typing import Callable, List
 if False:
 	# noinspection PyUnresolvedReferences
 	from _stubs import *
-	from _typeAliases import *
 
-	class _Par:
-		Scenedir: StrParamT
-	class _Comp(COMP):
-		par: _Par
 	from statusDisplay.statusDisplay import StatusDisplay
 	iop.statusDisplay = StatusDisplay(COMP())
 
@@ -25,7 +20,7 @@ _logger = logging.getLogger(__name__)
 class SceneLibrary:
 	def __init__(self, ownerComp: 'COMP'):
 		# noinspection PyTypeChecker
-		self.ownerComp = ownerComp  # type: _Comp
+		self.ownerComp = ownerComp
 		self.sceneTable = ownerComp.op('sceneTable')  # type: tableDAT
 
 	def OnStartup(self, thenRun: Callable = None, runArgs: list = None):

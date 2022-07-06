@@ -12,7 +12,6 @@ if False:
 	class _Pars:
 		Setfile: StrParamT
 		Setname: StrParamT
-		Scenedir: StrParamT
 		Mappingsfile: StrParamT
 
 	class _Comp(COMP):
@@ -43,7 +42,6 @@ class Config:
 	def _buildLiveSet(self):
 		return LiveSet(
 			name=self.ownerComp.par.Setname.eval(),
-			sceneDir=self.ownerComp.par.Scenedir.eval(),
 			mappingsFile=self.ownerComp.par.Mappingsfile.eval(),
 			scenes=iop.sceneLibrary.GetSceneSpecs(),
 			settings=iop.appState.GetStateParameterVals(),
@@ -60,14 +58,12 @@ class Config:
 		if stage == 0:
 			self.ownerComp.par.Setname = liveSet.name or ''
 		elif stage == 1:
-			self._setSceneDir(liveSet.sceneDir)
-		elif stage == 2:
 			_showMessage(f'Loading mappings from {liveSet.mappingsFile or "-"}')
 			self.ownerComp.par.Mappingsfile = liveSet.mappingsFile or ''
-		elif stage == 3:
+		elif stage == 2:
 			_showMessage('Loading settings')
 			iop.appState.ApplyStateParameterVals(liveSet.settings)
-		elif stage == 4:
+		elif stage == 3:
 			scenes = liveSet.scenes or []
 			_showMessage(f'Loading {len(scenes)} scenes')
 			iop.sceneLibrary.LoadSceneSpecs(scenes, Action(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun]))
@@ -76,13 +72,6 @@ class Config:
 			queueCall(thenRun)
 			return
 		queueCall(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun])
-
-	def _setSceneDir(self, sceneDir: str):
-		self.ownerComp.par.Scenedir = sceneDir or ''
-		if sceneDir and 'scenes' not in project.paths:
-			project.paths['scenes'] = sceneDir
-		elif 'scenes' in project.paths:
-			del project.paths['scenes']
 
 	def _saveLiveSet(self, file: str):
 		liveSet = self._buildLiveSet()
@@ -127,15 +116,8 @@ class Config:
 			)
 			if not file:
 				return
-			sceneDir = ui.chooseFolder(
-				title='Select Scene Folder',
-				start=Path(file).parent.as_posix(),
-			)
-			if not sceneDir:
-				return
 			self.ownerComp.par.Setname = name
 			self.ownerComp.par.Setfile = file
-			self._setSceneDir(sceneDir)
 			iop.sceneLibrary.UnloadScenes()
 			_showMessage(f'Started new live set {name} in {tdu.expandPath(file)}')
 		showPromptDialog(
