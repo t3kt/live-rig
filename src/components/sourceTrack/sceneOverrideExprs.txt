@@ -2,9 +2,9 @@ path	parameter	value
 *	Resx Renderresx Renderresw	ipar.appState.Resx
 *	Resy Renderresy Renderresh	ipar.appState.Resy
 *	Bindchannelsource	repr(op('bindChannelValues').path)
-*	Parfilterenable	ipar.appState.Parfilterenable
-*	Parfiltertype	ipar.appState.Parfiltertype
-*	Parfilterwidth	ipar.appState.Parfilterwidth
+*	Parfilterenable Filterenable	ipar.appState.Parfilterenable
+*	Parfiltertype Filtertype	ipar.appState.Parfiltertype
+*	Parfilterwidth Filterwidth	ipar.appState.Parfilterwidth
 *	Parfilterlag1	ipar.appState.Parfilterlag1
 *	Parfilterlag2	ipar.appState.Parfilterlag2
 *	Parfilterovershoot1	ipar.appState.Parfilterovershoot1
