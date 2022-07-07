@@ -40,10 +40,12 @@ class Config:
 		return self.ownerComp.par.Setfile.eval()
 
 	def _buildLiveSet(self):
+		scenes = iop.sceneLibrary.GetSceneSpecs()
+		scenes.sort(key=lambda s: s.name)
 		return LiveSet(
 			name=self.ownerComp.par.Setname.eval(),
 			mappingsFile=self.ownerComp.par.Mappingsfile.eval(),
-			scenes=iop.sceneLibrary.GetSceneSpecs(),
+			scenes=scenes,
 			settings=iop.appState.GetStateParameterVals(),
 		)
 
