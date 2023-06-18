@@ -54,7 +54,7 @@ class SceneLoader:
 	def LoadScene(self, tox: str):
 		self.UnloadScene()
 		mode = self._mode()
-		self.infoTable['tox', 1] = tdu.collapsePath(tox)
+		self._setInfoField('tox', tdu.collapsePath(tox))
 		self.ownerComp.par.Scenetox = tox
 		if mode == 'inline':
 			comp = self.ownerComp.loadTox(tdu.expandPath(tox), unwired=True)
@@ -62,7 +62,7 @@ class SceneLoader:
 			comp.tags.add(_sceneTag)
 			self.videoOutSelect.par.top = self._findSceneOutput(comp) or ''
 			self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(comp) or ''
-			self.infoTable['comp', 1] = comp.path
+			self._setInfoField('comp', comp.path)
 			self._applyOverridesAndInit()
 		elif mode == 'engine':
 			self.engine.par.file = tdu.expandPath(tox)
@@ -88,7 +88,7 @@ class SceneLoader:
 				return o
 
 	def onEngineInitialize(self):
-		self.infoTable['comp', 1] = self.engine.path
+		self._setInfoField('comp', self.engine.path)
 		self._applyOverridesAndInit()
 
 	def onEngineStart(self):
@@ -112,3 +112,15 @@ class SceneLoader:
 	def _updateOverrideState(self, active: bool):
 		for o in self.ownerComp.ops('sceneOverrides', 'controlValues'):
 			o.export = active
+
+	def _setInfoField(self, name, val):
+		if val is None:
+			val = ''
+		if self.infoTable.numRows == 0:
+			self.infoTable.appendRow([name, val])
+			return
+		cell = self.infoTable[name, 1]
+		if cell is not None:
+			cell.val = val
+		else:
+			self.infoTable.appendRow([name, val])
