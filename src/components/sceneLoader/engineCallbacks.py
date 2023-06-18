@@ -9,7 +9,7 @@ def onInitialize(engineComp):
 	ext.sceneLoader.onEngineInitialize()
 
 def onStart(engineComp):
-	return
+	ext.sceneLoader.onEngineStart()
 
 def whileRunning(engineComp):
 	return

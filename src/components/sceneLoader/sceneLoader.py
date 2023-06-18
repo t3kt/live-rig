@@ -88,10 +88,15 @@ class SceneLoader:
 				return o
 
 	def onEngineInitialize(self):
-		self.videoOutSelect.par.top = self._findSceneOutput(self.engine) or ''
-		self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(self.engine) or ''
 		self.infoTable['comp', 1] = self.engine.path
 		self._applyOverridesAndInit()
+
+	def onEngineStart(self):
+		queueCall(self._attachToEngine)
+
+	def _attachToEngine(self):
+		self.videoOutSelect.par.top = self._findSceneOutput(self.engine) or ''
+		self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(self.engine) or ''
 
 	@staticmethod
 	def _triggerInit(comp: 'COMP'):
