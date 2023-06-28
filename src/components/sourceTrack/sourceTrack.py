@@ -44,6 +44,9 @@ class SourceTrack:
 	def UnloadScene(self):
 		self.LoadScene(None, None)
 
+	def IsActive(self):
+		return self.ownerComp.par.Active.eval()
+
 	def GetSceneName(self):
 		return self.ownerComp.par.Scenename.eval()
 

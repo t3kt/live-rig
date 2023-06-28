@@ -40,8 +40,17 @@ class LiveRig:
 
 	@staticmethod
 	def GetControlTargetSceneName():
-		for track in (iop.sourceTrack1, iop.sourceTrack2):
-			if track.par.Active:
-				name = track.GetSceneName()
-				if name:
-					return name
+		track1Name = iop.sourceTrack1.GetSceneName() if iop.sourceTrack1.IsActive() else None
+		track2Name = iop.sourceTrack2.GetSceneName() if iop.sourceTrack2.IsActive() else None
+		if track1Name:
+			if track2Name:
+				# both active so choose based on mixer
+				fade = iop.mixer.par.Crossfade
+				if fade > 0:
+					return track2Name
+				else:
+					return track1Name
+			else:
+				return track1Name
+		else:
+			return track2Name
