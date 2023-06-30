@@ -71,13 +71,18 @@ class CompStructure:
 	comp: Optional['COMP']
 	name: Optional[str] = None
 	includeParams: Optional[List[str]] = None
+	excludeParams: Optional[List[str]] = None
 	children: Optional[List['CompStructure']] = None
 
 	def getParams(self):
 		if not self.includeParams:
-			return self.comp.customPars
+			pars = self.comp.customPars
 		else:
-			return self.comp.pars(*self.includeParams)
+			pars = self.comp.pars(*self.includeParams)
+		if self.excludeParams:
+			excludePars = self.comp.pars(*self.excludeParams)
+			pars = [p for p in pars if p not in excludePars]
+		return pars
 
 @dataclass
 class CompSettings(_ModelObject):

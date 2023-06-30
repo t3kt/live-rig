@@ -1,3 +1,6 @@
+from liveComponent import ConfigurableExtension
+from liveModel import CompStructure
+
 # noinspection PyUnreachableCode
 if False:
 	# noinspection PyUnresolvedReferences
@@ -10,8 +13,9 @@ if False:
 	class _Comp(COMP):
 		par: _Par
 
-class Controls:
+class Controls(ConfigurableExtension):
 	def __init__(self, ownerComp: 'COMP'):
+		super().__init__(ownerComp)
 		# noinspection PyTypeChecker
 		self.ownerComp = ownerComp  # type: _Comp
 
@@ -27,3 +31,14 @@ class Controls:
 			if file:
 				self.ownerComp.par.Mappingsfile.val = file
 				self.ownerComp.op('mappings').par.edit.pulse()
+
+	def getCompStructure(self) -> 'CompStructure':
+		return CompStructure(
+			self.ownerComp,
+			includeParams=['Mappingsfile'],
+			children=[
+				CompStructure(
+					self.ownerComp.op('controlMapper'),
+					includeParams=['Enable*', 'Device'])
+			]
+		)
