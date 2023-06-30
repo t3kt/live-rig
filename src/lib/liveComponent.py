@@ -14,7 +14,7 @@ class ConfigurableExtension(ExtensionBase):
 	def getCompStructure(self) -> 'CompStructure':
 		return CompStructure(self.ownerComp)
 
-	def ExtractSettings(self, currentSettings: Optional[CompSettings]) -> CompSettings:
+	def ExtractSettings(self, currentSettings: Optional[CompSettings] = None) -> CompSettings:
 		structure = self.getCompStructure()
 		if not currentSettings:
 			return CompSettings.extractFromComponent(structure)

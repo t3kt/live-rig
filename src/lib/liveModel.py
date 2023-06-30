@@ -46,23 +46,6 @@ def _shouldInclude(val):
 
 
 @dataclass
-class SceneSpec(_ModelObject):
-	yaml_tag = '!scene'
-
-	name: Optional[str] = None
-	tox: Optional[str] = None
-	thumb: Optional[str] = None
-
-@dataclass
-class LiveSet(_ModelObject):
-	yaml_tag = '!liveSet'
-
-	name: Optional[str] = None
-	scenes: List[SceneSpec] = field(default_factory=list)
-	settings: Dict[str, Any] = field(default_factory=dict)
-	mappingsFile: Optional[str] = None
-
-@dataclass
 class CompStructure:
 	"""
 	Defines the serialization rules for a component
@@ -126,6 +109,28 @@ class CompSettings(_ModelObject):
 			if not childSettings and not applyDefaults:
 				continue
 			(childSettings or CompSettings()).applyToComponent(childStructure, applyDefaults)
+
+@dataclass
+class SceneSpec(_ModelObject):
+	yaml_tag = '!scene'
+
+	name: Optional[str] = None
+	tox: Optional[str] = None
+	thumb: Optional[str] = None
+
+@dataclass
+class LiveSet(_ModelObject):
+	yaml_tag = '!liveSet'
+
+	name: Optional[str] = None
+	scenes: List[SceneSpec] = field(default_factory=list)
+	settings: Dict[str, Any] = field(default_factory=dict)
+	mappingsFile: Optional[str] = None
+
+	audio: Optional[CompSettings] = None
+	mixer: Optional[CompSettings] = None
+	control: Optional[CompSettings] = None
+	output: Optional[CompSettings] = None
 
 def _extractCompParams(comp: 'COMP', vals: dict, includeParams: Optional[List[str]]):
 	if includeParams is None:

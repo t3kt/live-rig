@@ -23,6 +23,14 @@ if False:
 	iop.sceneLibrary = SceneLibrary(COMP())
 	from statusDisplay.statusDisplay import StatusDisplay
 	iop.statusDisplay = StatusDisplay(COMP())
+	from audio.audio import AudioController
+	iop.audio = AudioController(COMP())
+	from mixer.mixer import Mixer
+	iop.mixer = Mixer(COMP())
+	from output.output import OutputController
+	iop.output = OutputController(COMP())
+	from controls.controls import Controls
+	iop.controls = Controls(COMP())
 
 def _showMessage(text: str):
 	iop.statusDisplay.ShowMessage(text)
@@ -47,6 +55,10 @@ class Config:
 			mappingsFile=self.ownerComp.par.Mappingsfile.eval(),
 			scenes=scenes,
 			settings=iop.appState.GetStateParameterVals(),
+			audio=iop.audio.ExtractSettings(),
+			control=iop.controls.ExtractSettings(),
+			mixer=iop.mixer.ExtractSettings(),
+			output=iop.output.ExtractSettings(),
 		)
 
 	def _loadLiveSet(self, file: str, thenRun: Callable):
@@ -66,6 +78,18 @@ class Config:
 			_showMessage('Loading settings')
 			iop.appState.ApplyStateParameterVals(liveSet.settings)
 		elif stage == 3:
+			_showMessage('Loading audio settings')
+			iop.audio.ApplySettings(liveSet.audio, applyDefaults=False)
+		elif stage == 4:
+			_showMessage('Loading control settings')
+			iop.controls.ApplySettings(liveSet.audio, applyDefaults=False)
+		elif stage == 5:
+			_showMessage('Loading mixer settings')
+			iop.mixer.ApplySettings(liveSet.audio, applyDefaults=False)
+		elif stage == 6:
+			_showMessage('Loading output settings')
+			iop.output.ApplySettings(liveSet.audio, applyDefaults=False)
+		elif stage == 7:
 			scenes = liveSet.scenes or []
 			_showMessage(f'Loading {len(scenes)} scenes')
 			iop.sceneLibrary.LoadSceneSpecs(scenes, Action(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun]))
