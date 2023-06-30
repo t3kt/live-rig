@@ -12,7 +12,6 @@ if False:
 	class _Pars:
 		Setfile: StrParamT
 		Setname: StrParamT
-		Mappingsfile: StrParamT
 
 	class _Comp(COMP):
 		par: _Pars
@@ -57,7 +56,6 @@ class Config:
 		scenes.sort(key=lambda s: s.name)
 		return LiveSet(
 			name=self.ownerComp.par.Setname.eval(),
-			mappingsFile=self.ownerComp.par.Mappingsfile.eval(),
 			scenes=scenes,
 			settings=iop.appState.GetStateParameterVals(),
 			audio=iop.audio.ExtractSettings(),
@@ -79,30 +77,27 @@ class Config:
 		if stage == 0:
 			self.ownerComp.par.Setname = liveSet.name or ''
 		elif stage == 1:
-			_showMessage(f'Loading mappings from {liveSet.mappingsFile or "-"}')
-			self.ownerComp.par.Mappingsfile = liveSet.mappingsFile or ''
-		elif stage == 2:
 			_showMessage('Loading settings')
 			iop.appState.ApplyStateParameterVals(liveSet.settings)
-		elif stage == 3:
+		elif stage == 2:
 			_showMessage('Loading audio settings')
 			iop.audio.ApplySettings(liveSet.audio, applyDefaults=False)
-		elif stage == 4:
+		elif stage == 3:
 			_showMessage('Loading control settings')
-			iop.controls.ApplySettings(liveSet.audio, applyDefaults=False)
-		elif stage == 5:
+			iop.controls.ApplySettings(liveSet.control, applyDefaults=False)
+		elif stage == 4:
 			_showMessage('Loading mixer settings')
-			iop.mixer.ApplySettings(liveSet.audio, applyDefaults=False)
-		elif stage == 6:
+			iop.mixer.ApplySettings(liveSet.mixer, applyDefaults=False)
+		elif stage == 5:
 			_showMessage('Loading output settings')
-			iop.output.ApplySettings(liveSet.audio, applyDefaults=False)
-		elif stage == 7:
+			iop.output.ApplySettings(liveSet.output, applyDefaults=False)
+		elif stage == 6:
 			_showMessage('Loading track 1 settings')
 			iop.sourceTrack1.ApplySettings(liveSet.track1, applyDefaults=False)
-		elif stage == 8:
+		elif stage == 7:
 			_showMessage('Loading track 2 settings')
 			iop.sourceTrack2.ApplySettings(liveSet.track2, applyDefaults=False)
-		elif stage == 9:
+		elif stage == 8:
 			scenes = liveSet.scenes or []
 			_showMessage(f'Loading {len(scenes)} scenes')
 			iop.sceneLibrary.LoadSceneSpecs(scenes, Action(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun]))
