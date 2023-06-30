@@ -132,6 +132,9 @@ class LiveSet(_ModelObject):
 	control: Optional[CompSettings] = None
 	output: Optional[CompSettings] = None
 
+	track1: Optional[CompSettings] = None
+	track2: Optional[CompSettings] = None
+
 def _extractCompParams(comp: 'COMP', vals: dict, includeParams: Optional[List[str]]):
 	if includeParams is None:
 		pars = comp.customPars

@@ -31,6 +31,11 @@ if False:
 	iop.output = OutputController(COMP())
 	from controls.controls import Controls
 	iop.controls = Controls(COMP())
+	from sourceTrack.sourceTrack import SourceTrack
+	# noinspection PyTypeChecker
+	iop.sourceTrack1 = SourceTrack(COMP())
+	# noinspection PyTypeChecker
+	iop.sourceTrack2 = SourceTrack(COMP())
 
 def _showMessage(text: str):
 	iop.statusDisplay.ShowMessage(text)
@@ -59,6 +64,8 @@ class Config:
 			control=iop.controls.ExtractSettings(),
 			mixer=iop.mixer.ExtractSettings(),
 			output=iop.output.ExtractSettings(),
+			track1=iop.sourceTrack1.ExtractSettings(),
+			track2=iop.sourceTrack2.ExtractSettings(),
 		)
 
 	def _loadLiveSet(self, file: str, thenRun: Callable):
@@ -90,6 +97,12 @@ class Config:
 			_showMessage('Loading output settings')
 			iop.output.ApplySettings(liveSet.audio, applyDefaults=False)
 		elif stage == 7:
+			_showMessage('Loading track 1 settings')
+			iop.sourceTrack1.ApplySettings(liveSet.track1, applyDefaults=False)
+		elif stage == 8:
+			_showMessage('Loading track 2 settings')
+			iop.sourceTrack2.ApplySettings(liveSet.track2, applyDefaults=False)
+		elif stage == 9:
 			scenes = liveSet.scenes or []
 			_showMessage(f'Loading {len(scenes)} scenes')
 			iop.sceneLibrary.LoadSceneSpecs(scenes, Action(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun]))
