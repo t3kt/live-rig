@@ -1,4 +1,6 @@
 from liveCommon import navigateTo
+from liveComponent import ConfigurableExtension
+from liveModel import CompStructure
 import logging
 from typing import Optional
 
@@ -23,15 +25,24 @@ if False:
 
 _logger = logging.getLogger(__name__)
 
-class SourceTrack:
+class SourceTrack(ConfigurableExtension):
 	def __init__(self, ownerComp: '_Comp'):
-		self.ownerComp = ownerComp
+		super().__init__(ownerComp)
 		self.sceneInfo = ownerComp.op('sceneInfo')  # type: DAT
 		# noinspection PyTypeChecker
 		self.sceneLoader = ownerComp.op('sceneLoader')  # type: SceneLoader
 
 	def OnStartup(self):
 		pass
+
+	def getCompStructure(self) -> 'CompStructure':
+		return CompStructure(
+			self.ownerComp,
+			includeParams=['Active', 'Scenename'],
+			children=[
+				CompStructure(self.GetSceneComp(), 'scene')
+			]
+		)
 
 	def LoadScene(self, name: Optional[str], tox: Optional[str]):
 		_logger.info(f'LoadScene({name!r}, {tox!r})')

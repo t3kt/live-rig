@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields, field
 from io import StringIO
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Any
+from typing import Optional, Union, List, Dict, Any, Tuple
 import yaml
 
 # noinspection PyUnreachableCode
@@ -61,6 +61,73 @@ class LiveSet(_ModelObject):
 	scenes: List[SceneSpec] = field(default_factory=list)
 	settings: Dict[str, Any] = field(default_factory=dict)
 	mappingsFile: Optional[str] = None
+
+@dataclass
+class CompStructure:
+	"""
+	Defines the serialization rules for a component
+	"""
+
+	comp: Optional['COMP']
+	name: Optional[str] = None
+	includeParams: Optional[List[str]] = None
+	children: Optional[List['CompStructure']] = None
+
+	def getParams(self):
+		if not self.includeParams:
+			return self.comp.customPars
+		else:
+			return self.comp.pars(*self.includeParams)
+
+@dataclass
+class CompSettings(_ModelObject):
+	yaml_tag = '!comp'
+
+	params: Dict[str, Any] = field(default_factory=dict)
+	children: Dict[str, 'CompSettings'] = field(default_factory=dict)
+
+	@classmethod
+	def extractFromComponent(cls, compStructure: CompStructure):
+		settings = cls()
+		settings.updateFromComponent(compStructure)
+		return settings
+
+	def updateFromComponent(self, compStructure: CompStructure):
+		if not compStructure.comp:
+			return
+		extractParVals(compStructure.getParams(), self.params)
+		if not compStructure.children:
+			return
+		for childStructure in compStructure.children:
+			if not childStructure.comp:
+				continue
+			childName = childStructure.name or childStructure.comp.name
+			childSettings = self.children.get(childName)
+			if not childSettings:
+				self.children[childName] = childSettings = CompSettings()
+			childSettings.updateFromComponent(childStructure)
+
+	def applyToComponent(self, compStructure: CompStructure, applyDefaults: bool):
+		if not compStructure.comp:
+			return
+		applyParVals(compStructure.getParams(), self.params, applyDefaults=applyDefaults)
+		if not compStructure.children:
+			return
+		for childStructure in compStructure.children:
+			if not childStructure.comp:
+				continue
+			childName = childStructure.name or childStructure.comp.name
+			childSettings = self.children.get(childName)
+			if not childSettings and not applyDefaults:
+				continue
+			(childSettings or CompSettings()).applyToComponent(childStructure, applyDefaults)
+
+def _extractCompParams(comp: 'COMP', vals: dict, includeParams: Optional[List[str]]):
+	if includeParams is None:
+		pars = comp.customPars
+	else:
+		pars = comp.pars(*includeParams)
+	extractParVals(pars, vals)
 
 def extractParVal(par: 'Par'):
 	if par is None:
