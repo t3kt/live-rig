@@ -2,6 +2,8 @@
 if False:
 	# noinspection PyUnresolvedReferences
 	from _stubs import *
+	from sceneLibrary.sceneLibrary import SceneLibrary
+	iop.sceneLibrary = SceneLibrary(COMP())
 
 import popMenu
 
@@ -10,7 +12,10 @@ def _showItemMenu(comp: 'COMP'):
 		items=[
 			popMenu.Item(
 				'Show tox file',
-				lambda: ui.viewFile(tdu.expandPath(comp.par.Toxfile), showInFolder=True))
+				lambda: ui.viewFile(tdu.expandPath(comp.par.Toxfile), showInFolder=True)),
+			popMenu.Item(
+				'Remove scene',
+				lambda: iop.sceneLibrary.RemoveSceneByName(comp.par.Name.eval())),
 		]
 	)
 

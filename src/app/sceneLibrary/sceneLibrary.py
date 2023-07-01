@@ -101,6 +101,9 @@ class SceneLibrary:
 		)
 		self._addOrReplaceSceneInTable(scene)
 
+	def RemoveSceneByName(self, name: str):
+		self.sceneTable.deleteRow(name)
+
 	@staticmethod
 	def GetValidDropFiles(dragItems: list):
 		files = []  # type: List[tdu.FileInfo]
