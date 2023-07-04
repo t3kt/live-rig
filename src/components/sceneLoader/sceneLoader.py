@@ -111,10 +111,20 @@ class SceneLoader(CallbacksExt):
 				p.pulse()
 
 	def _applyOverridesAndInit(self):
-		queueCall(lambda: self._updateOverrideState(False), delayFrames=30)
-		queueCall(lambda: self._updateOverrideState(True), delayFrames=60)
-		queueCall(lambda: self._triggerInit(self.engine), delayFrames=90)
-		queueCall(lambda: self._notifySceneReady(), delayFrames=120)
+		queueCall(lambda: self._applyOverridesAndInit_stage(0), delayFrames=30)
+
+	def _applyOverridesAndInit_stage(self, stage: int):
+		if stage == 0:
+			self._updateOverrideState(False)
+		elif stage == 1:
+			self._updateOverrideState(True)
+		elif stage == 2:
+			self._triggerInit(self.engine)
+		elif stage == 3:
+			self._notifySceneReady()
+		else:
+			return
+		queueCall(lambda: self._applyOverridesAndInit_stage(stage + 1), delayFrames=10)
 
 	def _notifySceneReady(self):
 		self.DoCallback('onSceneReady', {
