@@ -28,3 +28,6 @@ class StatusDisplay:
 
 	def _setMessageText(self, text: str):
 		self.ownerComp.op('messageText').par.text = text or ''
+
+	def OpenGraphPopup(self):
+		self.ownerComp.op('trail').openViewer(unique=True)
