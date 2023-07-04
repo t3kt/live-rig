@@ -15,6 +15,7 @@ if False:
 	from config.config import Config
 	iop.config = Config(COMP())
 	from sceneLoader.sceneLoader import SceneLoader
+	from parameterProxy.parameterProxy import ParameterProxy
 
 	class _Par:
 		Active: BoolParamT
@@ -26,13 +27,15 @@ if False:
 _logger = logging.getLogger(__name__)
 
 class SourceTrack(ConfigurableExtension):
+	# noinspection PyTypeChecker
 	def __init__(self, ownerComp: '_Comp'):
 		super().__init__(ownerComp)
 		self.sceneInfo = ownerComp.op('sceneInfo')  # type: DAT
-		# noinspection PyTypeChecker
 		self.sceneLoader = ownerComp.op('sceneLoader')  # type: SceneLoader
+		self.parameterProxy = ownerComp.op('parameterProxy')  # type: ParameterProxy
 
 	def OnStartup(self):
+		self.parameterProxy.Detach()
 		pass
 
 	def getCompStructure(self) -> 'CompStructure':
@@ -73,3 +76,9 @@ class SourceTrack(ConfigurableExtension):
 		comp = self.GetSceneComp()
 		if comp and comp.par['Installbindings'] is not None:
 			comp.par.Installbindings.pulse()
+
+	def onSceneReady(self, scene: 'COMP'):
+		self.parameterProxy.Attach(scene)
+
+	def onSceneUnloaded(self):
+		self.parameterProxy.Detach()

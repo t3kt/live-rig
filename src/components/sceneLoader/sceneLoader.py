@@ -6,11 +6,16 @@ if False:
 	# noinspection PyUnresolvedReferences
 	from _stubs import *
 
+try:
+	from TDCallbacksExt import CallbacksExt
+except ImportError:
+	from _stubs.TDCallbacksExt import CallbacksExt
+
 _sceneTag = 'scene'
 
-class SceneLoader:
+class SceneLoader(CallbacksExt):
 	def __init__(self, ownerComp: 'COMP'):
-		self.ownerComp = ownerComp
+		super().__init__(ownerComp)
 		self.engine = ownerComp.op('engine')
 		self.infoTable = ownerComp.op('setInfo')  # type: tableDAT
 		self.videoOutSelect = ownerComp.op('selVideoOut')  # type: TOP
@@ -47,6 +52,7 @@ class SceneLoader:
 		self.infoTable.clear()
 		self.infoTable.appendCol(['tox', 'comp'])
 		self.infoTable.appendCol([])
+		self.DoCallback('onSceneUnloaded', {})
 
 	def Unloadscene(self, _=None):
 		self.UnloadScene()
@@ -108,6 +114,12 @@ class SceneLoader:
 		queueCall(lambda: self._updateOverrideState(False), delayFrames=30)
 		queueCall(lambda: self._updateOverrideState(True), delayFrames=60)
 		queueCall(lambda: self._triggerInit(self.engine), delayFrames=90)
+		queueCall(lambda: self._notifySceneReady(), delayFrames=120)
+
+	def _notifySceneReady(self):
+		self.DoCallback('onSceneReady', {
+			'scene': self.GetSceneComp(),
+		})
 
 	def _updateOverrideState(self, active: bool):
 		for o in self.ownerComp.ops('sceneOverrides', 'controlValues'):
@@ -124,3 +136,20 @@ class SceneLoader:
 			cell.val = val
 		else:
 			self.infoTable.appendRow([name, val])
+
+	def Createcallbacks(self, _=None):
+		par = self.ownerComp.par.Callbackdat
+		if par.eval():
+			return
+		ui.undo.startBlock('Create callbacks')
+		dat = self.ownerComp.parent().create(textDAT, self.ownerComp.name + '_callbacks')
+		dat.copy(self.ownerComp.op('callbacksTemplate'))
+		dat.par.extension = 'py'
+		dat.par.language = 'python'
+		dat.nodeX = self.ownerComp.nodeX
+		dat.nodeY = self.ownerComp.nodeY - 150
+		dat.dock = self.ownerComp
+		self.ownerComp.showDocked = True
+		dat.viewer = True
+		par.val = dat
+		ui.undo.endBlock()

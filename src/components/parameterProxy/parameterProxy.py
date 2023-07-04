@@ -1,4 +1,3 @@
-from liveComponent import ExtensionBase
 import logging
 
 try:
@@ -13,7 +12,10 @@ if False:
 
 _logger = logging.getLogger(__name__)
 
-class ParameterProxy(ExtensionBase):
+class ParameterProxy:
+	def __init__(self, ownerComp: 'COMP'):
+		self.ownerComp = ownerComp
+
 	@property
 	def Params(self):
 		return self.ownerComp.op('params') or self.ownerComp.op('blank')
