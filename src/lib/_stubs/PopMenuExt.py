@@ -15,7 +15,7 @@
 #
 # _END_HEADER_
 
-# SimplePopMenuExt
+# PopMenuExt
 
 TDFunctions = op.TDModules.mod.TDFunctions
 
@@ -34,7 +34,10 @@ class PopMenuExt:
 		self.configComp = ownerComp.par.Configcomp.eval()
 		self.itemsTable = ownerComp.op('itemsIn')
 		self.layoutTable = ownerComp.op('itemsLayout')
+		self.insertTitleDAT = ownerComp.op('insertTitle')
+		self.insertTitleDAT.bypass = not ownerComp.par.Title.eval()
 		self.buttonFormat = self.configComp.op('buttonPress')
+		self.Scaler = ownerComp.op('scaler')
 		self.Window = ownerComp.par.Windowcomp.eval()
 		self.Lister = ownerComp.op('lister')
 		self.colDefine = ownerComp.op('colDefine')
@@ -83,9 +86,7 @@ class PopMenuExt:
 
 		self.setAttachPars()
 
-		run('args[0].par.winclose.pulse() if args[0] else None', 
-				self.Window, delayFrames=1, delayRef=op.TDResources)
-
+		#self.Window.par.winclose.pulse()
 		run('args[0].ext.PopMenuExt.refresh() if args[0] else None' ,
 			ownerComp, delayFrames=1, delayRef=op.TDResources)
 
@@ -94,7 +95,8 @@ class PopMenuExt:
 			 highlightedItems=None, disabledItems=None, dividersAfterItems=None,
 			 checkedItems=None, subMenuItems=None, autoClose=None,
 			 shortcuts=None,
-			 rolloverCallback=None, allowStickySubMenus=None, title=None):
+			 rolloverCallback=None, allowStickySubMenus=None,
+			 title=None, scale=None):
 		"""
 		Open the menu.
 
@@ -126,6 +128,9 @@ class PopMenuExt:
 			Callback DAT will be searched
 		allowStickySubMenus: if True, clicking on subMenu items will lock their
 			submenus open
+		title: automatically add this string as a disabled title item at top of 
+			menu
+		scale: scales the popup menu created
 		"""
 		if items is not None:
 			if not isinstance(items, list):
@@ -150,6 +155,12 @@ class PopMenuExt:
 				autoClose = 1
 			if allowStickySubMenus is None:
 				allowStickySubMenus = True
+			if title is None:
+				title = ''
+			if scale is None:
+				scale = 1
+		if scale is not None:
+			self.ownerComp.par.Scale = scale
 		if disabledItems is not None:
 			if not isinstance(disabledItems, list):
 				raise TypeError (
@@ -201,14 +212,16 @@ class PopMenuExt:
 			self.ownerComp.par.Autoclose.menuIndex = autoClose
 		if allowStickySubMenus is not None:
 			self.ownerComp.par.Allowstickysubmenus = allowStickySubMenus
+		if title is not None:
+			self.ownerComp.par.Title = str(title)
 		self.CallbackDetails = callbackDetails
 		self.updateCheckedItems(self.ownerComp.par.Checkeditems.eval())
 		self.Lister.par.Refresh.pulse()
 		self.Selected = -1
-		self.winOpen()
-		# self._openDelay = run(
-		# 		'op("' + self.ownerComp.path + '").ext.PopMenuExt.winOpen()',
-		# 		delayFrames=1, delayRef=op.TDResources)
+		#self.winOpen()
+		self._openDelay = run(
+		 		'op("' + self.ownerComp.path + '").ext.PopMenuExt.winOpen()',
+		 		delayFrames=1, delayRef=op.TDResources)
 
 	def SetCallback(self, callback, callbackName="onSelect"):
 		self.ownerComp.ext.CallbacksExt.SetAssignedCallback(callbackName,
@@ -222,26 +235,28 @@ class PopMenuExt:
 		self.Lister.Refresh()
 		self.Window.par.winopen.pulse()
 		if not self.ParentMenu:
-			self.ownerComp.setFocus()
-		if self.ShowScrollbar:
-			self.Lister.scroll(0,0)
+			self.Scaler.setFocus()
 
 
 	def OpenSubMenu(self, items=None, callback=None, callbackDetails=None,
 			 highlightedItems=None, disabledItems=None, dividersAfterItems=None,
 			 checkedItems=None,
 			 subMenuItems=None, autoClose=1, shortcuts=None,
-			 rolloverCallback=None, allowStickySubMenus=None, title=None):
+			 rolloverCallback=None, allowStickySubMenus=None, title=None,
+			 scale=None):
 		"""
 		Open this menu's sub-menu (uses op in subMenu parameter by default).
 		Takes all the same arguments as Open()
 		"""
+		if scale is None:
+			scale = self.ownerComp.par.Scale
 		self._subMenuArgs = (items, callback, callbackDetails, highlightedItems,
 							 disabledItems, dividersAfterItems, checkedItems,
 							 subMenuItems, autoClose, shortcuts,
-							 rolloverCallback, allowStickySubMenus)
+							 rolloverCallback, allowStickySubMenus, title, 
+							 scale)
 		self.SubMenu.Close()
-		self.ownerComp.setFocus()
+		self.Scaler.setFocus()
 		self.doOpenSubMenu()
 
 	def doOpenSubMenu(self):
@@ -253,7 +268,9 @@ class PopMenuExt:
 		self.SubMenu.Open(*self._subMenuArgs)
 		self.SubMenuCell = self.LastCell
 		# HACK focus is lost so we have to restore rollover
-		self.Lister.ext.ListerExt.RollCell(self.LastCell, 1)
+		#debug('openSubMenu', self.LastCell)
+		self.Lister.ext.ListerExt.onRollover(
+										self.LastCell, 0, (0,0), -1, -1, (0,0))
 
 	def SetPlacement(self, hAlign='Left', vAlign='Top', alignOffset=(0,0),
 					 		buttonComp=None, hAttach='Left', vAttach='Bottom',
@@ -306,15 +323,14 @@ class PopMenuExt:
 		except:
 			pass
 		self._openDelay = None
-
 		if self.IsOpen:
 			ext.CallbacksExt.DoCallback('onRollover', self.infoDict(-1))
 			ext.CallbacksExt.DoCallback('onClose', self.infoDict())
 			self.ownerComp.par.Checkeditems.mode = ParMode.CONSTANT
 			self.Window.par.winclose.pulse()
 			if self.ParentMenu:
-				if not self.ParentMenu.panel.focusselect:
-					self.ParentMenu.setFocus()
+				if not self.ParentMenu.Scaler.panel.focusselect:
+					self.ParentMenu.Scaler.setFocus()
 				self.ParentMenu = None
 			self.TempAdjustX = self.TempAdjustY = 0
 		self.callback = None
@@ -328,8 +344,8 @@ class PopMenuExt:
 		Called by panel exec when mouse is over a new cell.
 		-1: mouse is not over a cell
 		"""
-		if not self.ownerComp.panel.focusselect:
-			self.ownerComp.setFocus()
+		# if not self.Scaler.panel.focusselect:
+		# 	self.Scaler.setFocus()
 		self.LastCell = cell
 		# sanity check
 		if self.ParentMenu and not self.ParentMenu.IsOpen:
@@ -352,7 +368,8 @@ class PopMenuExt:
 						or self.SubMenu.par.Autoclose.menuIndex == 1 \
 						or not self.ownerComp.par.Allowstickysubmenus.eval():
 					# new submenu cell
-					run('args[0].checkMenuRoll(args[1])', self, cell, delayMilliSeconds=300)
+					run('args[0].checkMenuRoll(args[1])', self, cell, 
+							delayMilliSeconds=300)
 					# self.OnSelect(cell, doautoClose=False, menuRoll=True)
 			else:
 				if self.SubMenu.IsOpen and (
@@ -360,7 +377,7 @@ class PopMenuExt:
 						or not self.ownerComp.par.Allowstickysubmenus.eval()):
 					self.SubMenu.Close()
 					self.SubMenuCell = None
-					self.ownerComp.setFocus()
+					# self.Scaler.setFocus()
 
 	def OnSelect(self, cell, doautoClose=True, menuRoll=False):
 		"""
@@ -377,7 +394,7 @@ class PopMenuExt:
 				if self.ownerComp.par.Allowstickysubmenus.eval():
 					self.SubMenu.par.Autoclose = \
 								0 if self.SubMenu.par.Autoclose.menuIndex else 1
-					return
+				return
 			else:
 				if infoDict['item'] in self.SubMenuItems and \
 								not self.SubMenu.par.Autoclose.eval() and \
@@ -387,7 +404,9 @@ class PopMenuExt:
 				# else:
 					self.SubMenu.par.Autoclose = 0
 				self.SubMenu.Close()
-				self.Lister.Refresh()
+				#print(project.pythonStack())
+		elif self.SubMenuCell == cell:
+			return
 		# ordinary selects...
 		try:
 			ext.CallbacksExt.DoCallback('onSelect', infoDict)
@@ -476,17 +495,21 @@ class PopMenuExt:
 	@property
 	def Items(self):
 		try:
-			return [row[0].val for row in self.itemsTable.rows()]
+			items = [row[0].val for row in self.itemsTable.rows()]
 		except:
-			return []
+			items = []
+		# if self.Title:
+		# 	items = [self.Title] + items
+		return items
 
 	@property
 	def DisabledItems(self):
 		parVal = self.ownerComp.par.Disableditems.eval()
 		if parVal.strip():
-			return eval(parVal.strip())
+			items = eval(parVal.strip())
 		else:
-			return []
+			items = []
+		return items
 
 	@property
 	def HighlightedItems(self):
@@ -502,9 +525,10 @@ class PopMenuExt:
 			return []
 		parVal = self.ownerComp.par.Dividersafteritems.eval()
 		if parVal.strip():
-			return eval(parVal.strip())
+			items = eval(parVal.strip())
 		else:
-			return []
+			items = []
+		return items			
 
 	@property
 	def CheckedItems(self):
@@ -534,6 +558,12 @@ class PopMenuExt:
 			return {}
 
 	@property
+	def Title(self):
+		if self.NumCols > 1:
+			return None
+		return self.ownerComp.par.Title.eval()
+
+	@property
 	def NumCols(self):
 		return self.ownerComp.par.Columns.eval()
 
@@ -543,8 +573,8 @@ class PopMenuExt:
 
 	def setDimensions(self):
 		self.CalculateOptimalDimensions()
-		self.Lister.par.w = self.Window.par.winw = self.ownerComp.par.w.eval()
-		self.Lister.par.h = self.Window.par.winh = self.ownerComp.par.h.eval()
+		self.Lister.par.w = self.ownerComp.par.w.eval()
+		self.Lister.par.h = self.ownerComp.par.h.eval()
 		if not self.Window.isOpen:
 			self.RecalculateOffsets()
 
@@ -556,22 +586,24 @@ class PopMenuExt:
 		# oldBold = self.buttonFormat.par.bold.eval()
 		# self.buttonFormat.par.bold = True
 		for i in self.Items:
-			self.buttonFormat.par.text = i
-			if self.buttonFormat.textWidth > iwidth:
-				iwidth = self.buttonFormat.textWidth
-		self._ColumnWidth.val = iwidth + \
-								self.buttonFormat.par.position1.eval() * 3
+			textSize = self.buttonFormat.evalTextSize(i)[0]
+			if textSize > iwidth:
+				iwidth = textSize
+		offset = self.buttonFormat.par.position1.eval() \
+				if hasattr(self.buttonFormat.par, 'position1') else \
+					self.buttonFormat.par.textoffsetx.eval()
+		self._ColumnWidth.val = iwidth + offset * 3
 		width = self.NumCols * self.ColumnWidth
 		#self.buttonFormat.par.bold = oldBold
 
 		# shortcuts
 		swidth = 10
 		for i in self.Shortcuts.values():
-			self.buttonFormat.par.text = i
-			if self.buttonFormat.textWidth > swidth:
-				swidth = self.buttonFormat.textWidth
+			textSize = self.buttonFormat.evalTextSize(i)[0]
+			if textSize > iwidth:
+				swidth = textSize
 		self._ShortcutWidth.val = swidth + \
-								self.buttonFormat.par.position1.eval() * 10
+								offset + 34
 		if self.NumCols==1 and self.Shortcuts:
 			width += self.ShortcutWidth
 
@@ -581,27 +613,33 @@ class PopMenuExt:
 			width += int(self.colDefine['width', 'Symbol'])
 
 		self._OptimalWidth.val = max(16, width)
-		rowHeight = self.configComp.op('master').par.resolutionh
-		self._OptimalHeight.val = rowHeight * self.layoutTable.numRows + \
-					len([i for i in self.DividersAfterItems if i in self.Items])
+		rowHeight = self.configComp.op('master').height
+		optimalHeight = rowHeight * (self.layoutTable.numRows 
+						+ (1 if self.Title else 0))
 
-		if self.ownerComp.par.Maxheight.eval() and \
-				self._OptimalHeight.val > self.ownerComp.par.Maxheight.eval():
+		if self.ownerComp.par.Maxheightmode == 'Pixels':
+			maxHeight = self.ownerComp.par.Maxheight.eval()
+		else:
+			maxHeight = rowHeight * self.ownerComp.par.Maxheight.eval()
+		if self.ownerComp.par.Maxheight.eval() and optimalHeight > maxHeight:
 			self._OptimalWidth.val += 13 # lister scrollbar size
-			self._OptimalHeight.val = self.ownerComp.par.Maxheight.eval()
+			self._OptimalHeight.val = maxHeight
 			self._ShowScrollbar.val = True
 		else:
+			self._OptimalHeight.val = optimalHeight
 			self._ShowScrollbar.val = False
 
 	def CellLocationY(self, cell):
 		if cell < 0 or cell > len(self.Items):
 			return 0 # just fake it
-		baseLocation = cell * self.configComp.op('master').par.resolutionh
-		numDividers = len([c for c in self.Items[:cell]
-										if c in self.DividersAfterItems])
-		return baseLocation + numDividers
+		baseLocation = cell * self.configComp.op('master').height \
+						* self.ownerComp.par.Scale
+		return baseLocation 
 
 	def LostFocus(self):
+		if self.Scaler.panel.rollover:
+			self.Scaler.setFocus()
+			return
 		if self.ownerComp.par.Autoclose.menuIndex:
 			if self.SubMenu and self.SubMenu.IsOpen:
 				# recurse to bottom subMenu
@@ -746,7 +784,10 @@ class PopMenuExt:
 			self.Lister.Refresh()
 		elif par.name in ['Items','Dividersafteritems', 'Checkeditems',
 						  'Disableditems', 'Highlighteditems', 'w', 'h',
-						  'Shortcuts', 'Itemtextalign']:
+						  'Shortcuts', 'Itemtextalign', 'Title']:
+			if par.name == 'Title':
+				self.insertTitleDAT.bypass = not par.eval()
+				self.Lister.cook(force=True)
 			self.Lister.ext.ListerExt.setupAutoColDefine(True)
 			if self.IsOpen or self.ownerComp.viewer:
 				self.refresh()

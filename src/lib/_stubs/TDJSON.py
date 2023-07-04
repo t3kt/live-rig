@@ -39,7 +39,7 @@ def jsonToDat(jsonObject, dat):
 	"""
 	dat.text = jsonToText(jsonObject)
 
-def textToJSON(text, orderedDict=True, showErrors=False):
+def textToJSON(text, orderedDict=False, showErrors=False):
 	"""
 	Turn a JSON object stored as text into a Python object.
 	Will be forced to a Python collections.OrderedDict if orderedDict argument
@@ -56,7 +56,7 @@ def textToJSON(text, orderedDict=True, showErrors=False):
 		else:
 			return None
 
-def datToJSON(dat, orderedDict=True, showErrors=False):
+def datToJSON(dat, orderedDict=False, showErrors=False):
 	"""
 	Returns a JSONable dict from a dat
 	"""
@@ -160,7 +160,8 @@ def parameterToJSONPar(p, extraAttrs=None, forceAttrLists=False):
 		p = p[0]
 
 	parAttrs = ('name', 'label', 'page', 'style', 'size', 'default', 'enable',
-				'startSection', 'cloneImmune', 'readOnly', 'enableExpr')
+				'startSection', 'cloneImmune', 'readOnly', 'enableExpr',
+				'help')
 	if extraAttrs == '*':
 		extraAttrs = []
 		for m in dir(p):
@@ -187,7 +188,7 @@ def parameterToJSONPar(p, extraAttrs=None, forceAttrLists=False):
 				parAttrs += (a,)
 
 	# create dictionary
-	jDict = collections.OrderedDict()
+	jDict = dict()
 	# grab attrs
 	for attr in parAttrs:
 		if attr == 'size' and (p.style in ('Int', 'Float') or not p.isCustom):
@@ -256,7 +257,7 @@ def pageToJSONDict(page, extraAttrs=None, forceAttrLists=False):
 	forceAttrLists: If True, all attributes will be stored in a list with the
 		length of the tuplet
 	"""
-	jPage = collections.OrderedDict()
+	jPage = dict()
 	for p in page.pars:
 		# make sure we only do first par in each tuplet
 		# and you must test by name otherwise it defaults to value tests
@@ -278,7 +279,7 @@ def opToJSONOp(op, extraAttrs=None, forceAttrLists=False,
 	includeCustomPages: If True, include custom par pages
 	includeBuiltInPages: If True, include builtin pages
 	"""
-	jOp = collections.OrderedDict()
+	jOp = dict()
 	if includeBuiltInPages:
 		for page in op.pages:
 			jOp[page.name] = pageToJSONDict(page, extraAttrs,
@@ -470,7 +471,7 @@ def addParametersFromJSONList(comp, jsonList, replace=True, setValues=True,
 	for jsonPar in jsonList:
 		newPars = addParameterFromJSONDict(comp, jsonPar, replace, setValues,
 								ignoreAttrErrors, fixParNames, setBuiltIns)
-		if newPars:
+		if newPars is not None:
 			parNames += [p.name for p in newPars]
 			pageNames.add(newPars[0].page.name)
 	if destroyOthers:
@@ -501,7 +502,7 @@ def addParametersFromJSONDict(comp, jsonDict, replace=True, setValues=True,
 		newPars = addParameterFromJSONDict(comp, jsonPar, replace, setValues,
 										   ignoreAttrErrors, fixParNames,
 										   setBuiltIns)	
-		if newPars:
+		if newPars is not None:
 			parNames += [p.name for p in newPars]
 			pageNames.add(newPars[0].page.name)
 	if destroyOthers:
