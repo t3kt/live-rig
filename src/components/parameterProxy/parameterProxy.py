@@ -28,7 +28,7 @@ class ParameterProxy:
 		if params is not None:
 			params.destroy()
 		self.ownerComp.par.Targetop = ''
-		self.ownerComp.op('setChans').par.snap.pulse()
+		self.ownerComp.op('setChans').par.name0 = ''
 
 	def Attach(self, target: 'COMP'):
 		params = self.ownerComp.op('params')
@@ -41,14 +41,31 @@ class ParameterProxy:
 		TDJSON.addParametersFromJSONOp(
 			params, parsJson,
 			replace=True, setValues=True, destroyOthers=True)
+		self._applyExclusions(params)
+		self.ownerComp.op('getParVals').cook(force=True)
+		parNames = [ch.name for ch in self.ownerComp.op('deleteExcluded').chans()]
+		self.ownerComp.op('setChans').par.name0 = ' ' .join(parNames)
+		self._applyBindings(params)
+
+	def _applyExclusions(self, params: 'COMP'):
 		excludes = tdu.split(self.ownerComp.par.Excludeparams)
-		if excludes:
-			deleteNames = [p.name for p in params.pars(*excludes)]
-			for name in deleteNames:
-				par = params.par[name]
-				if par is not None and par.valid:
-					par.destroy()
-			for page in params.customPages:
-				if not page.pars:
-					page.destroy()
-		self.ownerComp.op('setChans').par.snap.pulse()
+		if not excludes:
+			return
+		deleteNames = [p.name for p in params.pars(*excludes)]
+		for name in deleteNames:
+			par = params.par[name]
+			if par is not None and par.valid:
+				par.destroy()
+		for page in params.customPages:
+			if not page.pars:
+				page.destroy()
+
+	def _applyBindings(self, params: 'COMP'):
+		if not self.ownerComp.par.Enablebindings:
+			return
+		bindChop = self.ownerComp.op('bind')
+		__chNames = [c.name for c in bindChop.chans()]
+		for par in params.customPars:
+			chan = bindChop[par.name]
+			if chan is not None:
+				par.bindExpr = f"op('bind')['{par.name}']"
