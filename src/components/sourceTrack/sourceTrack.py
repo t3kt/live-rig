@@ -77,7 +77,7 @@ class SourceTrack(ConfigurableExtension):
 		if comp and comp.par['Installbindings'] is not None:
 			comp.par.Installbindings.pulse()
 
-	def onSceneReady(self, scene: 'COMP'):
+	def onSceneLoaded(self, scene: 'COMP'):
 		self.parameterProxy.Attach(scene)
 
 	def onSceneUnloaded(self):

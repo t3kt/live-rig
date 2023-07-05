@@ -121,15 +121,27 @@ class SceneLoader(CallbacksExt):
 		elif stage == 2:
 			self._triggerInit(self.engine)
 		elif stage == 3:
-			self._notifySceneReady()
+			self.DoCallback('onSceneLoaded', {'scene': self.GetSceneComp()})
+		elif stage == 4:
+			self._attachInputReferences()
+		elif stage == 5:
+			self.DoCallback('onSceneReady', {'scene': self.GetSceneComp()})
 		else:
 			return
 		queueCall(lambda: self._applyOverridesAndInit_stage(stage + 1), delayFrames=10)
 
-	def _notifySceneReady(self):
-		self.DoCallback('onSceneReady', {
-			'scene': self.GetSceneComp(),
-		})
+	def _attachInputReferences(self):
+		if not self.ownerComp.par.Enableinputcontrol:
+			return
+		scene = self.GetSceneComp()
+		if not scene:
+			return
+		chop = self.ownerComp.op('inputParValues')
+		for par in scene.customPars:
+			if par.mode != ParMode.CONSTANT:
+				continue
+			if chop[par.name] is not None:
+				par.expr = f"op('inputParValues')['{par.name}']"
 
 	def _updateOverrideState(self, active: bool):
 		for o in self.ownerComp.ops('sceneOverrides', 'controlValues'):

@@ -6,9 +6,12 @@ if False:
 	# noinspection PyTypeChecker
 	ext.sourceTrack = SourceTrack(COMP())
 
-def onSceneReady(info: dict):
+def onSceneLoaded(info: dict):
 	scene = info['scene']
-	ext.sourceTrack.onSceneReady(scene)
+	ext.sourceTrack.onSceneLoaded(scene)
+
+def onSceneReady(info: dict):
+	pass
 
 def onSceneUnloaded(info: dict):
 	ext.sourceTrack.onSceneUnloaded()
