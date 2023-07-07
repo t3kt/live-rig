@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict
 
 try:
 	import TDJSON
@@ -69,3 +70,12 @@ class ParameterProxy:
 			chan = bindChop[par.name]
 			if chan is not None:
 				par.bindExpr = f"op('bind')['{par.name}']"
+
+	def LoadParameterSnapshot(self, paramVals: Dict[str, Any]):
+		params = self.ownerComp.op('params')
+		if not params or not paramVals:
+			return
+		for name, val in paramVals.items():
+			par = params.par[name]
+			if par is not None:
+				par.val = val

@@ -1,5 +1,6 @@
 from liveCommon import queueCall
-from typing import Optional
+import logging
+from typing import Any, Dict, List, Optional
 
 # noinspection PyUnreachableCode
 if False:
@@ -11,6 +12,8 @@ try:
 except ImportError:
 	from _stubs.TDCallbacksExt import CallbacksExt
 
+_logger = logging.getLogger(__name__)
+
 _sceneTag = 'scene'
 
 class SceneLoader(CallbacksExt):
@@ -20,6 +23,9 @@ class SceneLoader(CallbacksExt):
 		self.infoTable = ownerComp.op('setInfo')  # type: tableDAT
 		self.videoOutSelect = ownerComp.op('selVideoOut')  # type: TOP
 		self.bindChannelsOutSelect = ownerComp.op('selBindChannelsOut')  # type: CHOP
+
+	def _log(self, msg):
+		_logger.info(f'{self.ownerComp}: {msg}')
 
 	def _mode(self): return self.ownerComp.par.Loadermode.eval()
 
@@ -63,6 +69,7 @@ class SceneLoader(CallbacksExt):
 		self._setInfoField('tox', tdu.collapsePath(tox))
 		self.ownerComp.par.Scenetox = tox
 		if mode == 'inline':
+			self._log('Loading inline...')
 			comp = self.ownerComp.loadTox(tdu.expandPath(tox), unwired=True)
 			comp.name = 'scene'
 			comp.tags.add(_sceneTag)
@@ -71,6 +78,7 @@ class SceneLoader(CallbacksExt):
 			self._setInfoField('comp', comp.path)
 			self._applyOverridesAndInit()
 		elif mode == 'engine':
+			self._log('Loading engine...')
 			self.engine.par.file = tdu.expandPath(tox)
 			self.engine.par.initialize.pulse()
 			self.engine.par.play = True
@@ -94,12 +102,15 @@ class SceneLoader(CallbacksExt):
 				return o
 
 	def onEngineInitialize(self):
+		self._log('Engine initialize')
 		self._setInfoField('comp', self.engine.path)
 
 	def onEngineStart(self):
+		self._log('Engine start')
 		queueCall(self._attachToEngine)
 
 	def _attachToEngine(self):
+		self._log('Attaching to engine')
 		self.videoOutSelect.par.top = self._findSceneOutput(self.engine) or ''
 		self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(self.engine) or ''
 		self._applyOverridesAndInit()
@@ -114,6 +125,7 @@ class SceneLoader(CallbacksExt):
 		queueCall(lambda: self._applyOverridesAndInit_stage(0), delayFrames=30)
 
 	def _applyOverridesAndInit_stage(self, stage: int):
+		self._log(f'applyOverridesAndInit(stage: {stage}')
 		if stage == 0:
 			self._updateOverrideState(False)
 		elif stage == 1:
@@ -121,11 +133,17 @@ class SceneLoader(CallbacksExt):
 		elif stage == 2:
 			self._triggerInit(self.engine)
 		elif stage == 3:
+			self._log('Calling onSceneLoaded')
 			self.DoCallback('onSceneLoaded', {'scene': self.GetSceneComp()})
+			self._log('finished calling onSceneLoaded')
 		elif stage == 4:
+			self._log('attaching input references')
 			self._attachInputReferences()
+			self._log('finished attaching input references')
 		elif stage == 5:
+			self._log('calling onSceneReady')
 			self.DoCallback('onSceneReady', {'scene': self.GetSceneComp()})
+			self._log('finished calling onSceneReady')
 		else:
 			return
 		queueCall(lambda: self._applyOverridesAndInit_stage(stage + 1), delayFrames=10)
@@ -175,3 +193,24 @@ class SceneLoader(CallbacksExt):
 		dat.viewer = True
 		par.val = dat
 		ui.undo.endBlock()
+
+	def GetSceneParamSnapshot(self, excludePatterns: List[str]) -> Dict[str, Any]:
+		scene = self.GetSceneComp()
+		self._log(f'Getting param snapshot (scene: {scene}')
+		if not scene:
+			return {}
+		if not excludePatterns:
+			excludeNames = []
+		else:
+			excludeNames = [p.name for p in scene.pars(*excludePatterns)]
+		snapshot = {}
+		self._log(f'building snapshot, excluding: {excludeNames}')
+		self._log(f'  scene comp: {scene}')
+		self._log(f'   scene params: {[p.name for p in scene.customPars]}')
+		for par in scene.customPars:
+			if par.name in excludeNames:
+				continue
+			self._log(f'   taking value of {par!r}..')
+			snapshot[par.name] = par.eval()
+		self._log(f' snapshot: {snapshot}')
+		return snapshot
