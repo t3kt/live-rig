@@ -42,3 +42,8 @@ class Controls(ConfigurableExtension):
 					includeParams=['Enable*', 'Device'])
 			]
 		)
+
+	def RefreshMappings(self):
+		mapper = self.ownerComp.op('controlMapper')
+		mapper.allowCooking = False
+		mapper.allowCooking = True

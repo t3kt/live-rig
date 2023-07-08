@@ -129,24 +129,35 @@ class SceneLoader(CallbacksExt):
 		if stage == 0:
 			self._updateOverrideState(False)
 		elif stage == 1:
-			self._updateOverrideState(True)
+			self._fixPhantomParamExpressions()
 		elif stage == 2:
-			self._triggerInit(self.engine)
+			self._updateOverrideState(True)
 		elif stage == 3:
+			self._triggerInit(self.engine)
+		elif stage == 4:
 			self._log('Calling onSceneLoaded')
 			self.DoCallback('onSceneLoaded', {'scene': self.GetSceneComp()})
 			self._log('finished calling onSceneLoaded')
-		elif stage == 4:
+		elif stage == 5:
 			self._log('attaching input references')
 			self._attachInputReferences()
 			self._log('finished attaching input references')
-		elif stage == 5:
+		elif stage == 6:
 			self._log('calling onSceneReady')
 			self.DoCallback('onSceneReady', {'scene': self.GetSceneComp()})
 			self._log('finished calling onSceneReady')
 		else:
 			return
 		queueCall(lambda: self._applyOverridesAndInit_stage(stage + 1), delayFrames=10)
+
+	def _fixPhantomParamExpressions(self):
+		self._log('fixing phantom param expressions')
+		scene = self.GetSceneComp()
+		if not scene:
+			return
+		for p in scene.customPars:
+			if p.mode == ParMode.EXPRESSION and 'inputParValues' in p.expr:
+				p.mode = ParMode.CONSTANT
 
 	def _attachInputReferences(self):
 		if not self.ownerComp.par.Enableinputcontrol:

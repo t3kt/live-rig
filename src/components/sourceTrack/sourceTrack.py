@@ -10,6 +10,8 @@ if False:
 	from _stubs import *
 	from _typeAliases import *
 
+	from controls.controls import Controls
+	iop.controls = Controls(COMP())
 	from sceneLibrary.sceneLibrary import SceneLibrary
 	iop.sceneLibrary = SceneLibrary(COMP())
 	from config.config import Config
@@ -95,6 +97,10 @@ class SourceTrack(ConfigurableExtension):
 		self._log('load param snapshot')
 		self.parameterProxy.LoadParameterSnapshot(paramSnapshot)
 		self._log('finished loading snapshot')
+		iop.controls.RefreshMappings()
+		paramComp = self.ownerComp.op('parameters')
+		paramComp.allowCooking = False
+		paramComp.allowCooking = True
 
 	def onSceneUnloaded(self):
 		self.parameterProxy.Detach()
