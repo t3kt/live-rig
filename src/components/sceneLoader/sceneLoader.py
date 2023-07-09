@@ -225,3 +225,31 @@ class SceneLoader(CallbacksExt):
 			snapshot[par.name] = par.eval()
 		self._log(f' snapshot: {snapshot}')
 		return snapshot
+
+	def buildParamSchemaTable(self, dat: 'scriptDAT'):
+		dat.clear()
+		dat.appendRow(['name', 'category', 'expr', 'filter', 'hidden'])
+		scene = self.GetSceneComp()
+		if not scene:
+			return
+		overrideTable = self.ownerComp.op('sceneOverrideExprs')
+		overrideExprs = {}
+		for row in range(1, overrideTable.numRows):
+			for name in tdu.split(overrideTable[row, 'param']):
+				overrideExprs[name] = str(overrideTable[row, 'expr'])
+		for par in scene.customPars:
+			if par.style == 'Header':
+				continue
+			expr = overrideExprs.get(par.name)
+			if expr is not None:
+				dat.appendRow([par.name, 'config', expr, 0, 1])
+			elif par.isPulse or par.isMomentary:
+				dat.appendRow([par.name, 'trigger', 0, 0])
+			elif par.isToggle:
+				dat.appendRow([par.name, 'toggle', 0, 0])
+			elif par.isMenu or par.isOP or par.isString:
+				dat.appendRow([par.name, 'setting', 0, 0])
+			elif par.isInt:
+				dat.appendRow([par.name, 'control', 0, 0])
+			else:
+				dat.appendRow([par.name, 'control', 1, 0])
