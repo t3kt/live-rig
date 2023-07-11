@@ -109,3 +109,15 @@ def showMessageDialog(
 		text=text,
 		escOnClickAway=escOnClickAway,
 		**kwargs)
+
+def parseFloatOrEmpty(val):
+	if hasattr(val, 'val'):
+		val = val.val
+	if val is None or val == '':
+		return None
+	return float(val)
+
+def floatToStringOrEmpty(val):
+	if val is None or val == '':
+		return ''
+	return str(val)

@@ -111,6 +111,26 @@ class CompSettings(_ModelObject):
 			(childSettings or CompSettings()).applyToComponent(childStructure, applyDefaults)
 
 @dataclass
+class ModulationControlMapping(_ModelObject):
+	yaml_tag = '!modCtrlMap'
+
+	enable: bool = False
+	source: Optional[str] = None
+	param: Optional[str] = None
+	low: Optional[float] = None
+	high: Optional[float] = None
+	trigger: bool = False
+
+@dataclass
+class ModulationSettings(_ModelObject):
+	yaml_tag = '!modulation'
+
+	enable: bool = True
+	triggerAttack: Optional[float] = None
+	triggerRelease: Optional[float] = None
+	controlMappings: List[ModulationControlMapping] = field(default_factory=list)
+
+@dataclass
 class SceneSpec(_ModelObject):
 	yaml_tag = '!scene'
 
