@@ -1,6 +1,7 @@
 import json
-from liveModel import applyParVals, extractParVals
+from liveModel import applyParVals, extractParVals, SceneState
 import logging
+from typing import List, Optional
 
 # noinspection PyUnreachableCode
 if False:
@@ -23,6 +24,34 @@ class StateManager:
 	def __init__(self, ownerComp: 'COMP'):
 		self.ownerComp = ownerComp
 
+	def GetAllSceneStates(self) -> List[SceneState]:
+		settings = self.ownerComp.fetch('sceneStates', [], search=False, storeDefault=False)
+		return settings or []
+
+	def SetAllSceneStates(self, states: Optional[List[SceneState]]):
+		if not states:
+			self.ownerComp.unstore('sceneStates')
+		else:
+			self.ownerComp.store('sceneStates', states)
+
+	def GetStateForScene(self, name: str) -> Optional[SceneState]:
+		for state in self.GetAllSceneStates():
+			if state.name == name:
+				return state
+
+	def UpdateState(self, state: SceneState):
+		currentStates = self.GetAllSceneStates()
+		found = False
+		for i in range(len(currentStates)):
+			if currentStates[i].name == state.name:
+				currentStates[i] = state
+				found = True
+				break
+		if not found:
+			currentStates.append(state)
+		currentStates.sort(key=lambda s: s.name)
+		self.SetAllSceneStates(currentStates)
+
 	def GetStateParameterVals(self):
 		self._gatherPaths()
 		pars = list(sorted(
@@ -31,7 +60,7 @@ class StateManager:
 		))
 		vals = {}
 		# TODO: maintain previous settings if missing
-		extractParVals(pars, vals)
+		extractParVals(pars, vals, retainBindings=True)
 		return vals
 
 	def ApplyStateParameterVals(self, vals: dict):

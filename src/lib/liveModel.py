@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields, field
 from io import StringIO
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Any, Tuple
+from typing import Optional, Union, List, Dict, Any
 import yaml
 
 # noinspection PyUnreachableCode
@@ -56,6 +56,7 @@ class CompStructure:
 	includeParams: Optional[List[str]] = None
 	excludeParams: Optional[List[str]] = None
 	children: Optional[List['CompStructure']] = None
+	retainBindings: bool = True
 
 	def getParams(self):
 		if not self.includeParams:
@@ -83,7 +84,7 @@ class CompSettings(_ModelObject):
 	def updateFromComponent(self, compStructure: CompStructure):
 		if not compStructure.comp:
 			return
-		extractParVals(compStructure.getParams(), self.params)
+		extractParVals(compStructure.getParams(), self.params, compStructure.retainBindings)
 		if not compStructure.children:
 			return
 		for childStructure in compStructure.children:
@@ -131,6 +132,14 @@ class ModulationSettings(_ModelObject):
 	controlMappings: List[ModulationControlMapping] = field(default_factory=list)
 
 @dataclass
+class SceneState(_ModelObject):
+	yaml_tag = '!sceneState'
+
+	name: Optional[str] = None
+	settings: Optional[CompSettings] = None
+	modulation: Optional[ModulationSettings] = None
+
+@dataclass
 class SceneSpec(_ModelObject):
 	yaml_tag = '!scene'
 
@@ -146,6 +155,7 @@ class LiveSet(_ModelObject):
 	scenes: List[SceneSpec] = field(default_factory=list)
 	settings: Dict[str, Any] = field(default_factory=dict)
 	mappingsFile: Optional[str] = None
+	sceneStates: List[SceneState] = field(default_factory=list)
 
 	audio: Optional[CompSettings] = None
 	mixer: Optional[CompSettings] = None
@@ -155,25 +165,21 @@ class LiveSet(_ModelObject):
 	track1: Optional[CompSettings] = None
 	track2: Optional[CompSettings] = None
 
-def _extractCompParams(comp: 'COMP', vals: dict, includeParams: Optional[List[str]]):
-	if includeParams is None:
-		pars = comp.customPars
-	else:
-		pars = comp.pars(*includeParams)
-	extractParVals(pars, vals)
-
-def extractParVal(par: 'Par'):
+def extractParVal(par: 'Par', retainBindings: bool):
 	if par is None:
 		return None
 	if par.mode == ParMode.EXPRESSION:
 		return '$' + par.expr
 	if par.mode == ParMode.BIND:
-		return '@' + par.bindExpr
+		if retainBindings:
+			return '@' + par.bindExpr
+		else:
+			return par.eval()
 	return par.val
 
-def extractParVals(pars: 'List[Par]', vals: dict):
+def extractParVals(pars: 'List[Par]', vals: dict, retainBindings: bool):
 	for par in pars:
-		vals[par.name] = extractParVal(par)
+		vals[par.name] = extractParVal(par, retainBindings)
 
 def applyParVal(par: 'Par', val):
 	if par is None or val is None:

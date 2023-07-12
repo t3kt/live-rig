@@ -24,7 +24,7 @@ class SceneLibrary:
 		self.sceneTable = ownerComp.op('sceneTable')  # type: tableDAT
 
 	def OnStartup(self, thenRun: Callable = None, runArgs: list = None):
-		# TODO: init
+		self._initializeSceneTable()
 		queueCall(thenRun, runArgs)
 
 	def UnloadScenes(self):
@@ -34,7 +34,7 @@ class SceneLibrary:
 	def _initializeSceneTable(self):
 		table = self.sceneTable
 		table.clear()
-		table.appendRow(['name', 'tox', 'thumbFile'])
+		table.appendRow(['name', 'tox', 'thumbFile', 'modulation'])
 
 	def _ensureSceneOverridesApplied(self):
 		overrides = self.ownerComp.op('evalSceneOverrides')

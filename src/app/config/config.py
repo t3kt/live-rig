@@ -54,9 +54,12 @@ class Config:
 	def _buildLiveSet(self):
 		scenes = iop.sceneLibrary.GetSceneSpecs()
 		scenes.sort(key=lambda s: s.name)
+		iop.sourceTrack1.SaveSceneState()
+		iop.sourceTrack2.SaveSceneState()
 		return LiveSet(
 			name=self.ownerComp.par.Setname.eval(),
 			scenes=scenes,
+			sceneStates=iop.appState.GetAllSceneStates(),
 			settings=iop.appState.GetStateParameterVals(),
 			audio=iop.audio.ExtractSettings(),
 			control=iop.controls.ExtractSettings(),
@@ -66,11 +69,14 @@ class Config:
 			track2=iop.sourceTrack2.ExtractSettings(),
 		)
 
-	def _loadLiveSet(self, file: str, thenRun: Callable):
+	def _loadLiveSetFromFile(self, file: str, thenRun: Callable):
 		self.ownerComp.par.Setfile = file
 		text = Path(file).read_text()
 		liveSet = LiveSet.parseFromText(text)
 		_showMessage(f'Loading live set from {tdu.expandPath(file)}')
+		self._loadLiveSet(liveSet, thenRun)
+
+	def _loadLiveSet(self, liveSet: LiveSet, thenRun: Callable):
 		queueCall(self._loadLiveSet_stage, [liveSet, 0, thenRun])
 
 	def _loadLiveSet_stage(self, liveSet: LiveSet, stage: int, thenRun: Callable):
@@ -102,6 +108,11 @@ class Config:
 			_showMessage(f'Loading {len(scenes)} scenes')
 			iop.sceneLibrary.LoadSceneSpecs(scenes, Action(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun]))
 			return
+		elif stage == 9:
+			_showMessage('Loading scene states')
+			# not sure why this check is necessary
+			if hasattr(liveSet, 'sceneStates'):
+				iop.appState.SetAllSceneStates(liveSet.sceneStates)
 		else:
 			queueCall(thenRun)
 			return
@@ -136,7 +147,7 @@ class Config:
 		if file:
 			def done():
 				_showMessage(f'Opened live set {tdu.expandPath(file)}')
-			self._loadLiveSet(file, thenRun=done)
+			self._loadLiveSetFromFile(file, thenRun=done)
 
 	def NewLiveSet(self):
 		def onContinue(name):
@@ -153,7 +164,9 @@ class Config:
 			self.ownerComp.par.Setname = name
 			self.ownerComp.par.Setfile = file
 			iop.sceneLibrary.UnloadScenes()
-			_showMessage(f'Started new live set {name} in {tdu.expandPath(file)}')
+			def onFinish():
+				_showMessage(f'Started new live set {name} in {tdu.expandPath(file)}')
+			self._loadLiveSet(LiveSet(), thenRun=onFinish)
 		showPromptDialog(
 			title='New Live Set',
 			text='Live Set Name',

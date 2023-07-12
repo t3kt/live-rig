@@ -1,6 +1,6 @@
 from liveCommon import navigateTo
 from liveComponent import ConfigurableExtension
-from liveModel import CompStructure
+from liveModel import CompStructure, SceneState, CompSettings
 import logging
 from typing import Any, Dict, Optional
 
@@ -18,6 +18,8 @@ if False:
 	iop.config = Config(COMP())
 	from sceneLoader.sceneLoader import SceneLoader
 	from parameterProxy.parameterProxy import ParameterProxy
+	from state.stateManager import StateManager
+	iop.appState = StateManager(COMP())
 
 	class _Par:
 		Active: BoolParamT
@@ -61,6 +63,7 @@ class SourceTrack(ConfigurableExtension):
 			self.sceneLoader.UnloadScene()
 
 	def UnloadScene(self):
+		self.SaveSceneState()
 		self.LoadScene(None, None)
 
 	def IsActive(self):
@@ -82,14 +85,17 @@ class SourceTrack(ConfigurableExtension):
 		if comp and comp.par['Installbindings'] is not None:
 			comp.par.Installbindings.pulse()
 
+	def _getParamSnapshot(self):
+		if not hasattr(self.sceneLoader, 'GetSceneParamSnapshot'):
+			print('Scene loader has no GetSceneParamSnapshot!!!')
+			return {}
+		else:
+			return self.sceneLoader.GetSceneParamSnapshot(
+				excludePatterns=tdu.split(self.parameterProxy.par.Excludeparams))
+
 	def onSceneLoaded(self, scene: 'COMP'):
 		self._log('onSceneLoaded, grabbing snapshot')
-		if not hasattr(self.sceneLoader, 'GetSceneParamSnapshot'):
-			paramSnapshot = {}
-			print('Scene loader has no GetSceneParamSnapshot!!!')
-		else:
-			paramSnapshot = self.sceneLoader.GetSceneParamSnapshot(
-				excludePatterns=tdu.split(self.parameterProxy.par.Excludeparams))
+		paramSnapshot = self._getParamSnapshot()
 		self._log(f'  snapshot: {paramSnapshot}')
 		self._log('attaching parameter proxy')
 		self.parameterProxy.Attach(scene)
@@ -101,6 +107,27 @@ class SourceTrack(ConfigurableExtension):
 		paramComp = self.ownerComp.op('parameters')
 		paramComp.allowCooking = False
 		paramComp.allowCooking = True
+		state = iop.appState.GetStateForScene(self.GetSceneName())
+		if state and state.settings and state.settings.params:
+			self._log('loading scene state')
+			self.parameterProxy.LoadParameterSnapshot(state.settings.params)
+
+	def _extractSceneState(self) -> Optional[SceneState]:
+		if not self.GetSceneComp():
+			return None
+		return SceneState(
+			name=self.GetSceneName(),
+			settings=CompSettings.extractFromComponent(
+				CompStructure(
+					self.parameterProxy.Params,
+					excludeParams=tdu.split(self.parameterProxy.par.Excludeparams),
+					retainBindings=False))
+		)
+
+	def SaveSceneState(self):
+		state = self._extractSceneState()
+		if state:
+			iop.appState.UpdateState(state)
 
 	def onSceneUnloaded(self):
 		self.parameterProxy.Detach()
