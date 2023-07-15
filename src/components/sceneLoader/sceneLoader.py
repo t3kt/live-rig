@@ -136,7 +136,9 @@ class SceneLoader(CallbacksExt):
 			self._triggerInit(self.engine)
 		elif stage == 4:
 			self._log('Calling onSceneLoaded')
-			self.DoCallback('onSceneLoaded', {'scene': self.GetSceneComp()})
+			scene = self.GetSceneComp()
+			if scene:
+				self.DoCallback('onSceneLoaded', {'scene': scene})
 			self._log('finished calling onSceneLoaded')
 		elif stage == 5:
 			self._log('attaching input references')
@@ -144,7 +146,9 @@ class SceneLoader(CallbacksExt):
 			self._log('finished attaching input references')
 		elif stage == 6:
 			self._log('calling onSceneReady')
-			self.DoCallback('onSceneReady', {'scene': self.GetSceneComp()})
+			scene = self.GetSceneComp()
+			if scene:
+				self.DoCallback('onSceneReady', {'scene': scene})
 			self._log('finished calling onSceneReady')
 		else:
 			return
@@ -161,11 +165,16 @@ class SceneLoader(CallbacksExt):
 
 	def _attachInputReferences(self):
 		if not self.ownerComp.par.Enableinputcontrol:
+			self._log('not attaching input references - input control is disabled')
 			return
 		scene = self.GetSceneComp()
 		if not scene:
+			self._log('not attaching input references - cannot find scene comp')
 			return
+		self._log(f'scene comp: {scene}')
 		chop = self.ownerComp.op('inputParValues')
+		_chanNames = [c.name for c in chop.chans()]
+		self._log(f'channels to attach: {_chanNames}')
 		for par in scene.customPars:
 			if par.mode != ParMode.CONSTANT:
 				continue

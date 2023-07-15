@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 try:
 	import TDJSON
@@ -32,6 +32,7 @@ class ParameterProxy:
 		self.ownerComp.op('setChans').par.name0 = ''
 
 	def Attach(self, target: 'COMP'):
+		_logger.info('attaching')
 		params = self.ownerComp.op('params')
 		if not params:
 			params = self.ownerComp.create(baseCOMP, 'params')
@@ -45,8 +46,9 @@ class ParameterProxy:
 		self._applyExclusions(params)
 		self.ownerComp.op('getParVals').cook(force=True)
 		parNames = [ch.name for ch in self.ownerComp.op('deleteExcluded').chans()]
+		_logger.info(f' par names: {parNames}')
 		self.ownerComp.op('setChans').par.name0 = ' ' .join(parNames)
-		self._applyBindings(params)
+		self._applyBindings(params, parNames)
 
 	def _applyExclusions(self, params: 'COMP'):
 		excludes = tdu.split(self.ownerComp.par.Excludeparams)
@@ -61,14 +63,16 @@ class ParameterProxy:
 			if not page.pars:
 				page.destroy()
 
-	def _applyBindings(self, params: 'COMP'):
+	def _applyBindings(self, params: 'COMP', parNames: List[str]):
 		if not self.ownerComp.par.Enablebindings:
 			return
-		bindChop = self.ownerComp.op('bind')
-		__chNames = [c.name for c in bindChop.chans()]
+		_logger.info('applying bindings')
+		# bindChop = self.ownerComp.op('bind')
+		# bindChop.cook(force=True)
+		# __chNames = [c.name for c in bindChop.chans()]
+		# _logger.info(f'channels for binding: {__chNames}')
 		for par in params.customPars:
-			chan = bindChop[par.name]
-			if chan is not None:
+			if par.name in parNames:
 				par.bindExpr = f"op('bind')['{par.name}']"
 
 	def LoadParameterSnapshot(self, paramVals: Dict[str, Any]):
