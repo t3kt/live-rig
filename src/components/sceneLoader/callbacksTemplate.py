@@ -7,9 +7,5 @@ def onSceneLoaded(info: dict):
 	scene = info['scene']
 	pass
 
-def onSceneReady(info: dict):
-	scene = info['scene']
-	pass
-
 def onSceneUnloaded(info: dict):
 	pass

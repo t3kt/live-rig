@@ -10,8 +10,5 @@ def onSceneLoaded(info: dict):
 	scene = info['scene']
 	ext.sourceTrack.onSceneLoaded(scene)
 
-def onSceneReady(info: dict):
-	pass
-
 def onSceneUnloaded(info: dict):
 	ext.sourceTrack.onSceneUnloaded()
