@@ -2,7 +2,7 @@ from liveCommon import navigateTo, queueCall
 from liveComponent import ConfigurableExtension
 from liveModel import CompStructure, SceneState, CompSettings
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 # noinspection PyUnreachableCode
 if False:
@@ -38,7 +38,7 @@ class SourceTrack(ConfigurableExtension):
 		self.sceneInfo = ownerComp.op('sceneInfo')  # type: DAT
 		self.sceneLoader = ownerComp.op('sceneLoader')  # type: SceneLoader
 		self.parameterProxy = ownerComp.op('parameterProxy')  # type: ParameterProxy
-		self.controlModulator = ownerComp.op('controlModulator')  # type: ControlModulator
+		self.controlModulator = ownerComp.op('controlModulator')  # type: Union[ControlModulator, COMP]
 		self._paramSnapshot = None  # type: Optional[Dict[str, Any]]
 
 	def _log(self, msg):
@@ -138,14 +138,17 @@ class SourceTrack(ConfigurableExtension):
 			# for filterable params, set up filtering channel scope
 			self._setUpParamFilterScope()
 		elif stage == 10:
+			# for modulatable params, set up modulator channel scope
+			self._setUpModulatorScope()
+		elif stage == 11:
 			# check for serialized scene state, if present, apply it to proxy
 			# if missing, apply from the snapshot loaded from earlier in init process
 			# limiting scope to exclude system params
 			self._loadSceneState()
-		elif stage == 11:
+		elif stage == 12:
 			# call scene initialization if needed
 			self.sceneLoader.TriggerSceneInit()
-		elif stage == 12:
+		elif stage == 13:
 			# workaround for parameter comp refresh bug
 			parComp = self.ownerComp.op('parameters')
 			parComp.cook(force=True)
@@ -219,6 +222,11 @@ class SourceTrack(ConfigurableExtension):
 		self._log('_setUpParamFilterScope()')
 		parNames = self._getParNames(filterable='1')
 		self.ownerComp.op('paramFilter').par.Filterpars = ' '.join(parNames)
+
+	def _setUpModulatorScope(self):
+		self._log('_setUpModulatorScope()')
+		parNames = self._getParNames(modulatable='1')
+		self.controlModulator.par.Modulatedparams = ' '.join(parNames)
 
 	def _loadSceneState(self):
 		self._log('_loadInitialParamValues()')

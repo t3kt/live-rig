@@ -1,8 +1,9 @@
-from liveCommon import floatToStringOrEmpty, parseFloatOrEmpty
+from liveCommon import parseFloatOrEmpty
 from liveComponent import ExtensionBase
 from liveModel import ModulationControlMapping, ModulationSettings
 import logging
-from typing import Any, Dict, Optional
+import popMenu
+from typing import Optional
 
 # noinspection PyUnreachableCode
 if False:
@@ -14,6 +15,7 @@ if False:
 		Enable: BoolParamT
 		Triggerattack: FloatParamT
 		Triggerrelease: FloatParamT
+		Modulatedparams: StrParamT
 
 	class _Comp(COMP):
 		par: _Par
@@ -23,15 +25,15 @@ _logger = logging.getLogger(__name__)
 class ControlModulator(ExtensionBase):
 	ownerComp: '_Comp'
 
-	def __init__(self, ownerComp: 'COMP'):
-		super().__init__(ownerComp)
-		self.mappingTable = self.ownerComp.op('mappingTable')  # type: DAT
+	def _mappingTable(self) -> 'DAT':
+		return self.ownerComp.op('modulatorTable')
 
 	def _log(self, msg):
 		_logger.info(f'{self.ownerComp}: {msg}')
 
 	def ExtractSettings(self):
-		if self.mappingTable.numRows < 2:
+		table = self._mappingTable()
+		if table.numRows < 2:
 			return ModulationSettings()
 		return ModulationSettings(
 			enable=self.ownerComp.par.Enable.eval(),
@@ -39,14 +41,14 @@ class ControlModulator(ExtensionBase):
 			triggerRelease=self.ownerComp.par.Triggerrelease.eval(),
 			controlMappings=[
 				ModulationControlMapping(
-					enable=self.mappingTable[i, 'enable'] == '1',
-					source=self.mappingTable[i, 'source'].val,
-					param=self.mappingTable[i, 'param'].val,
-					low=parseFloatOrEmpty(self.mappingTable[i, 'low']),
-					high=parseFloatOrEmpty(self.mappingTable[i, 'high']),
-					trigger=self.mappingTable[i, 'trigger'] == '1',
+					enable=table[i, 'enable'] == '1',
+					source=table[i, 'source'].val,
+					param=table[i, 'param'].val,
+					low=parseFloatOrEmpty(table[i, 'low']),
+					high=parseFloatOrEmpty(table[i, 'high']),
+					trigger=table[i, 'trigger'] == '1',
 				)
-				for i in range(1, self.mappingTable.numRows)
+				for i in range(1, table.numRows)
 			])
 
 	def LoadSettings(self, settings: Optional[ModulationSettings]):
@@ -61,8 +63,9 @@ class ControlModulator(ExtensionBase):
 			self.ownerComp.par.Triggerattack = settings.triggerAttack
 		if settings.triggerRelease is not None:
 			self.ownerComp.par.Triggerrelease = settings.triggerRelease
+		table = self._mappingTable()
 		for cm in settings.controlMappings:
-			self.mappingTable.appendRow([
+			table.appendRow([
 				int(cm.enable),
 				cm.source or '',
 				cm.param or '',
@@ -72,8 +75,46 @@ class ControlModulator(ExtensionBase):
 			])
 
 	def _initTable(self):
-		self.mappingTable.clear()
-		self.mappingTable.appendRow(['enable', 'source', 'param', 'low', 'high', 'trigger'])
+		table = self._mappingTable()
+		table.clear()
+		table.appendRow(['enable', 'source', 'param', 'low', 'high', 'trigger'])
 
 	def Clear(self):
 		self._initTable()
+
+	def onListClickEnable(self, row: int):
+		cell = self._mappingTable()[row, 'enable']
+		if cell is None:
+			return
+		if cell == '1':
+			cell.val = 0
+		else:
+			cell.val = 1
+
+	def onListClickSource(self, row: int):
+		cell = self._mappingTable()[row, 'source']
+		if cell is None:
+			return
+		controlSourceChans = self.ownerComp.op('controlSourceChans').chans()
+		def onSelect(info: dict):
+			i = info['index']
+			cell.val = controlSourceChans[i].name
+		popMenu.fromMouse().Show(
+			[popMenu.Item(c.name) for c in controlSourceChans],
+			callback=onSelect,
+		)
+
+	def onListClickParam(self, row: int):
+		cell = self._mappingTable()[row, 'param']
+		if cell is None:
+			return
+		params = tdu.split(self.ownerComp.par.Modulatedparams)
+		if not params:
+			return
+		def onSelect(info: dict):
+			i = info['index']
+			cell.val = params[i]
+		popMenu.fromMouse().Show(
+			[popMenu.Item(p) for p in params],
+			callback=onSelect,
+		)

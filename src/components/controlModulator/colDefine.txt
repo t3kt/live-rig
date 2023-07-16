@@ -1,0 +1,19 @@
+column	Enable	Source	Param	Low	High	Delete
+columnLabel	*	*	*	*	*	
+sourceData	enable	source	param	low	high	x
+sourceDataMode	int	string	string	float	float	constant
+format						
+cellLook						button
+textFormat						
+topPath						
+help						
+width	30	100	100	50	50	30
+stretch	0	1	1	0	0	0
+editable	0	0	0	1	1	0
+selectRow	1	1	1	1	1	1
+justify	CENTER	CENTERLEFT	CENTERLEFT	CENTER	CENTER	CENTER
+draggable	0	0	0	0	0	0
+clickOnDrag	0	0	0	0	0	0
+fontBold	0	0	0	0	0	0
+fontItalic	0	0	0	0	0	0
+sourceDataFormat						
