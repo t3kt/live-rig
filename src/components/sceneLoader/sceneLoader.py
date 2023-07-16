@@ -169,27 +169,6 @@ class SceneLoader(CallbacksExt):
 		par.val = dat
 		ui.undo.endBlock()
 
-	def GetSceneParamSnapshot(self, excludePatterns: List[str]) -> Dict[str, Any]:
-		scene = self.GetSceneComp()
-		self._log(f'Getting param snapshot (scene: {scene}')
-		if not scene:
-			return {}
-		if not excludePatterns:
-			excludeNames = []
-		else:
-			excludeNames = [p.name for p in scene.pars(*excludePatterns)]
-		snapshot = {}
-		self._log(f'building snapshot, excluding: {excludeNames}')
-		self._log(f'  scene comp: {scene}')
-		self._log(f'   scene params: {[p.name for p in scene.customPars]}')
-		for par in scene.customPars:
-			if par.name in excludeNames:
-				continue
-			self._log(f'   taking value of {par!r}..')
-			snapshot[par.name] = par.eval()
-		self._log(f' snapshot: {snapshot}')
-		return snapshot
-
 	def AttachToInputChannels(self, parNames: List[str]):
 		scene = self.GetSceneComp()
 		for name in parNames:
