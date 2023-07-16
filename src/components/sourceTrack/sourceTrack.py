@@ -279,7 +279,7 @@ class SourceTrack(ConfigurableExtension):
 				dat.appendRow([par.name, 'trigger', '', 0, 0, 0, 0])
 			elif par.isToggle:
 				dat.appendRow([par.name, 'toggle', '', 0, 1, 0, 0])
-			elif par.isMenu or par.isOP or par.isString or par.name in settingParNames:
+			elif par.isMenu or par.isOP or par.isString or par.name in settingParNames or par.style in ('RGB', 'RGBA'):
 				dat.appendRow([par.name, 'setting', '', 0, 0, 0, 0])
 			elif par.isInt:
 				dat.appendRow([par.name, 'control', '', 0, 1, 1, 0])
