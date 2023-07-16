@@ -74,3 +74,6 @@ class ControlModulator(ExtensionBase):
 	def _initTable(self):
 		self.mappingTable.clear()
 		self.mappingTable.appendRow(['enable', 'source', 'param', 'low', 'high', 'trigger'])
+
+	def Clear(self):
+		self._initTable()

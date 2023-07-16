@@ -20,6 +20,7 @@ if False:
 	from parameterProxy.parameterProxy import ParameterProxy
 	from state.stateManager import StateManager
 	iop.appState = StateManager(COMP())
+	from controlModulator.controlModulator import ControlModulator
 
 	class _Par:
 		Active: BoolParamT
@@ -37,6 +38,7 @@ class SourceTrack(ConfigurableExtension):
 		self.sceneInfo = ownerComp.op('sceneInfo')  # type: DAT
 		self.sceneLoader = ownerComp.op('sceneLoader')  # type: SceneLoader
 		self.parameterProxy = ownerComp.op('parameterProxy')  # type: ParameterProxy
+		self.controlModulator = ownerComp.op('controlModulator')  # type: ControlModulator
 		self._paramSnapshot = None  # type: Optional[Dict[str, Any]]
 
 	def _log(self, msg):
@@ -66,6 +68,7 @@ class SourceTrack(ConfigurableExtension):
 	def UnloadScene(self):
 		self.SaveSceneState()
 		self.LoadScene(None, None)
+		self.controlModulator.Clear()
 		self.ownerComp.op('paramPlaceholderChannels').par.name0 = ''
 
 	def IsActive(self):
@@ -138,7 +141,7 @@ class SourceTrack(ConfigurableExtension):
 			# check for serialized scene state, if present, apply it to proxy
 			# if missing, apply from the snapshot loaded from earlier in init process
 			# limiting scope to exclude system params
-			self._loadInitialParamValues()
+			self._loadSceneState()
 		elif stage == 11:
 			# call scene initialization if needed
 			self.sceneLoader.TriggerSceneInit()
@@ -217,7 +220,7 @@ class SourceTrack(ConfigurableExtension):
 		parNames = self._getParNames(filterable='1')
 		self.ownerComp.op('paramFilter').par.Filterpars = ' '.join(parNames)
 
-	def _loadInitialParamValues(self):
+	def _loadSceneState(self):
 		self._log('_loadInitialParamValues()')
 		sceneName = self.GetSceneName()
 		sceneState = iop.appState.GetStateForScene(sceneName)
@@ -228,6 +231,10 @@ class SourceTrack(ConfigurableExtension):
 		self._log(f'using scene state: {sceneState is not None}, pars: {" ".join(snapshot.keys())}')
 		self.parameterProxy.LoadParameterSnapshot(snapshot)
 		self._paramSnapshot = {}
+		if sceneState:
+			self.controlModulator.LoadSettings(sceneState.modulation)
+		else:
+			self.controlModulator.Clear()
 
 	def _extractSceneState(self) -> Optional[SceneState]:
 		if not self.GetSceneComp():
