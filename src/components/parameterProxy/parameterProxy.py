@@ -35,24 +35,12 @@ class ParameterProxy:
 		params.cloneImmune = True
 		params.destroyCustomPars()
 		self.ownerComp.par.Targetop = target
-		parsJson = TDJSON.opToJSONOp(target, extraAttrs='*')
-		parsJson = {
-			pageName: {
-				name: spec
-				for name, spec in pagePars.items()
-				if name in parNames
-			}
-			for pageName, pagePars in parsJson.items()
-		}
-		allParNames = [
-			name
-			for page in parsJson.values()
-			for name in page.keys()
-		]
-		_logger.info(f' all params: {allParNames}')
-		TDJSON.addParametersFromJSONOp(
-			params, parsJson,
-			replace=True, setValues=True, destroyOthers=True)
+		for targetPage in target.customPages:
+			params.appendCustomPage(targetPage.name)
+			for targetTuplet in targetPage.parTuplets:
+				if targetTuplet[0].name in parNames:
+					parObj = TDJSON.parameterToJSONPar(targetTuplet[0], extraAttrs='*')
+					TDJSON.addParameterFromJSONDict(params, parObj, setValues=True)
 
 	def BindToInputChannels(self, parNames: List[str]):
 		_logger.info('binding to input channels')
