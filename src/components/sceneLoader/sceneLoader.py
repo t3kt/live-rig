@@ -76,7 +76,7 @@ class SceneLoader(CallbacksExt):
 			self.videoOutSelect.par.top = self._findSceneOutput(comp) or ''
 			self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(comp) or ''
 			self._setInfoField('comp', comp.path)
-			self._applyOverridesAndInit()
+			queueCall(self._notifySceneLoaded)
 		elif mode == 'engine':
 			self._log('Loading engine...')
 			self.engine.par.file = tdu.expandPath(tox)
@@ -113,77 +113,32 @@ class SceneLoader(CallbacksExt):
 		self._log('Attaching to engine')
 		self.videoOutSelect.par.top = self._findSceneOutput(self.engine) or ''
 		self.bindChannelsOutSelect.par.chops = self._findBindChannelsOut(self.engine) or ''
-		self._applyOverridesAndInit()
+		self._notifySceneLoaded()
 
-	@staticmethod
-	def _triggerInit(comp: 'COMP'):
-		for p in comp.pars('Init', 'Installbindings'):
+	def _notifySceneLoaded(self):
+		self._log('Calling onSceneLoaded')
+		scene = self.GetSceneComp()
+		if scene:
+			self.DoCallback('onSceneLoaded', {'scene': scene})
+		self._log('finished calling onSceneLoaded')
+
+	def TriggerSceneInit(self):
+		self._log('triggering scene init')
+		scene = self.GetSceneComp()
+		if not scene:
+			return
+		for p in scene.pars('Init', 'Installbindings'):
 			if p.isPulse or p.isMomentary:
 				p.pulse()
 
-	def _applyOverridesAndInit(self):
-		queueCall(lambda: self._applyOverridesAndInit_stage(0), delayFrames=30)
-
-	def _applyOverridesAndInit_stage(self, stage: int):
-		self._log(f'applyOverridesAndInit(stage: {stage}')
-		if stage == 0:
-			self._updateOverrideState(False)
-		elif stage == 1:
-			self._fixPhantomParamExpressions()
-		elif stage == 2:
-			self._updateOverrideState(True)
-		elif stage == 3:
-			self._triggerInit(self.engine)
-		elif stage == 4:
-			self._log('Calling onSceneLoaded')
-			scene = self.GetSceneComp()
-			if scene:
-				self.DoCallback('onSceneLoaded', {'scene': scene})
-			self._log('finished calling onSceneLoaded')
-		elif stage == 5:
-			self._log('attaching input references')
-			self._attachInputReferences()
-			self._log('finished attaching input references')
-		elif stage == 6:
-			self._log('calling onSceneReady')
-			scene = self.GetSceneComp()
-			if scene:
-				self.DoCallback('onSceneReady', {'scene': scene})
-			self._log('finished calling onSceneReady')
-		else:
-			return
-		queueCall(lambda: self._applyOverridesAndInit_stage(stage + 1), delayFrames=10)
-
-	def _fixPhantomParamExpressions(self):
+	def FixPhantomParamExpressions(self):
 		self._log('fixing phantom param expressions')
 		scene = self.GetSceneComp()
 		if not scene:
 			return
 		for p in scene.customPars:
-			if p.mode == ParMode.EXPRESSION and 'inputParValues' in p.expr:
+			if p.mode == ParMode.EXPRESSION:  # and 'inputParValues' in p.expr:
 				p.mode = ParMode.CONSTANT
-
-	def _attachInputReferences(self):
-		if not self.ownerComp.par.Enableinputcontrol:
-			self._log('not attaching input references - input control is disabled')
-			return
-		scene = self.GetSceneComp()
-		if not scene:
-			self._log('not attaching input references - cannot find scene comp')
-			return
-		self._log(f'scene comp: {scene}')
-		chop = self.ownerComp.op('inputParValues')
-		_chanNames = [c.name for c in chop.chans()]
-		self._log(f'channels to attach: {_chanNames}')
-		for par in scene.customPars:
-			if par.mode != ParMode.CONSTANT:
-				continue
-			if chop[par.name] is not None:
-				par.expr = f"op('inputParValues')['{par.name}']"
-
-	def _updateOverrideState(self, active: bool):
-		for o in self.ownerComp.ops('sceneOverrides', 'controlValues'):
-			o.export = active
 
 	def _setInfoField(self, name, val):
 		if val is None:
@@ -235,30 +190,7 @@ class SceneLoader(CallbacksExt):
 		self._log(f' snapshot: {snapshot}')
 		return snapshot
 
-	def buildParamSchemaTable(self, dat: 'scriptDAT'):
-		dat.clear()
-		dat.appendRow(['name', 'category', 'expr', 'filter', 'hidden'])
+	def AttachToInputChannels(self, parNames: List[str]):
 		scene = self.GetSceneComp()
-		if not scene:
-			return
-		overrideTable = self.ownerComp.op('sceneOverrideExprs')
-		overrideExprs = {}
-		for row in range(1, overrideTable.numRows):
-			for name in tdu.split(overrideTable[row, 'param']):
-				overrideExprs[name] = str(overrideTable[row, 'expr'])
-		for par in scene.customPars:
-			if par.style == 'Header':
-				continue
-			expr = overrideExprs.get(par.name)
-			if expr is not None:
-				dat.appendRow([par.name, 'config', expr, 0, 1])
-			elif par.isPulse or par.isMomentary:
-				dat.appendRow([par.name, 'trigger', 0, 0])
-			elif par.isToggle:
-				dat.appendRow([par.name, 'toggle', 0, 0])
-			elif par.isMenu or par.isOP or par.isString:
-				dat.appendRow([par.name, 'setting', 0, 0])
-			elif par.isInt:
-				dat.appendRow([par.name, 'control', 0, 0])
-			else:
-				dat.appendRow([par.name, 'control', 1, 0])
+		for name in parNames:
+			scene.par[name].expr = f"op('inputParValues')['{name}']"

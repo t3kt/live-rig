@@ -37,6 +37,7 @@ class SourceTrack(ConfigurableExtension):
 		self.sceneInfo = ownerComp.op('sceneInfo')  # type: DAT
 		self.sceneLoader = ownerComp.op('sceneLoader')  # type: SceneLoader
 		self.parameterProxy = ownerComp.op('parameterProxy')  # type: ParameterProxy
+		self._paramSnapshot = None  # type: Optional[Dict[str, Any]]
 
 	def _log(self, msg):
 		_logger.info(f'{self.ownerComp}: {msg}')
@@ -65,6 +66,7 @@ class SourceTrack(ConfigurableExtension):
 	def UnloadScene(self):
 		self.SaveSceneState()
 		self.LoadScene(None, None)
+		self.ownerComp.op('paramPlaceholderChannels').par.name0 = ''
 
 	def IsActive(self):
 		return self.ownerComp.par.Active.eval()
@@ -85,32 +87,9 @@ class SourceTrack(ConfigurableExtension):
 		if comp and comp.par['Installbindings'] is not None:
 			comp.par.Installbindings.pulse()
 
-	def _getParamSnapshot(self):
-		if not hasattr(self.sceneLoader, 'GetSceneParamSnapshot'):
-			print('Scene loader has no GetSceneParamSnapshot!!!')
-			return {}
-		else:
-			return self.sceneLoader.GetSceneParamSnapshot(
-				excludePatterns=tdu.split(self.parameterProxy.par.Excludeparams))
-
 	def onSceneLoaded(self, scene: 'COMP'):
-		self._log('onSceneLoaded, grabbing snapshot')
-		paramSnapshot = self._getParamSnapshot()
-		self._log(f'  snapshot: {paramSnapshot}')
-		self._log('attaching parameter proxy')
-		self.parameterProxy.Attach(scene)
-		self._log('finished attaching proxy')
-		self._log('load param snapshot')
-		self.parameterProxy.LoadParameterSnapshot(paramSnapshot)
-		self._log('finished loading snapshot')
-		iop.controls.RefreshMappings()
-		paramComp = self.ownerComp.op('parameters')
-		paramComp.allowCooking = False
-		paramComp.allowCooking = True
-		state = iop.appState.GetStateForScene(self.GetSceneName())
-		if state and state.settings and state.settings.params:
-			self._log('loading scene state')
-			self.parameterProxy.LoadParameterSnapshot(state.settings.params)
+		self._log('onSceneLoaded')
+		self._initializeScene()
 
 	def _paramSchemaTable(self) -> 'DAT':
 		return self.ownerComp.op('paramSchemaTable')
@@ -123,62 +102,140 @@ class SourceTrack(ConfigurableExtension):
 	def _initializeScene_stage(self, stage: int):
 		self._log(f'_initializeScene_stage({stage})')
 		if stage == 0:
-			# TODO: fix phantom param expressions
-			pass
+			# fix phantom param expressions
+			self.sceneLoader.FixPhantomParamExpressions()
 		elif stage == 1:
 			# ensure param schema table is built
-			self._paramSchemaTable().cook(force=True)
-			pass
+			self._ensureParamSchemaLoaded()
 		elif stage == 2:
-			# TODO: grab snapshot of initial values of scene parameters
-			pass
+			# grab snapshot of initial values of scene parameters
+			self._paramSnapshot = self._getParamSnapshot()
 		elif stage == 3:
 			# assign expressions directly in scene for system-level params like render resolution
 			self._assignSystemParams()
 		elif stage == 4:
-			# TODO: create proxy parameters for everything except system-level config params
-			pass
+			# create proxy parameters for everything except system-level config params
+			self._createProxyParameters()
 		elif stage == 5:
-			# TODO: for settings params, set scene params as expression references to proxy params
+			# for settings params, set scene params as expression references to proxy params
 			# this includes all menu / string / OP parameters
 			# it also includes known settings-type parameters like Antialias
-			pass
+			self._attachSettingsToProxies()
 		elif stage == 6:
-			# TODO: set up input channel placeholders for mappable/modulatable params
+			# set up input channel placeholders for mappable/modulatable params
 			# TBD if this includes toggles and triggers
-			pass
+			self._createPlaceholderChannels()
 		elif stage == 7:
-			# TODO: for mappable/modulatable params, bind proxy params to input channels
-			pass
+			# for mappable params, bind proxy params to input channels
+			self._bindMappableProxyToInputChannels()
 		elif stage == 8:
-			# TODO: for mappable/modulatable params, set scene params as expression references to processed input channels
-			pass
+			# for mappable/modulatable/filterable params, set scene params as expression references to processed input channels
+			self._linkSceneParamsToInputChannels()
 		elif stage == 9:
-			# TODO: for filterable params, set up filtering channel scope
-			pass
+			# for filterable params, set up filtering channel scope
+			self._setUpParamFilterScope()
 		elif stage == 10:
-			# TODO: check for serialized scene state, if present, apply it to proxy
+			# check for serialized scene state, if present, apply it to proxy
 			# if missing, apply from the snapshot loaded from earlier in init process
 			# limiting scope to exclude system params
-			pass
+			self._loadInitialParamValues()
 		elif stage == 11:
+			# call scene initialization if needed
+			self.sceneLoader.TriggerSceneInit()
+		elif stage == 12:
+			# workaround for parameter comp refresh bug
+			parComp = self.ownerComp.op('parameters')
+			parComp.cook(force=True)
 			# TODO: finalize loaded status
 			pass
 		else:
 			return
 		queueCall(lambda: self._initializeScene_stage(stage + 1), delayFrames=10)
 
+	def _ensureParamSchemaLoaded(self):
+		self._log('_ensureParamSchemaLoaded()')
+		self._paramSchemaTable().cook(force=True)
+		self._log(f'found {self._paramSchemaTable().numRows - 1} params for schema')
+
+	def _getParamSnapshot(self):
+		self._log('_getParamSnapshot()')
+		snapshot = {}
+		parNames = self._getParNames(hidden='0')
+		scene = self.GetSceneComp()
+		for par in scene.pars(*parNames):
+			snapshot[par.name] = par.eval()
+		return snapshot
+
+	def _assignSystemParams(self):
+		scene = self.GetSceneComp()
+		paramTable = self._paramSchemaTable()
+		for row in range(1, paramTable.numRows):
+			if paramTable[row, 'expr'] != '':
+				par = scene.par[paramTable[row, 'name']]
+				if par is None:
+					raise Exception('MISSING PARAM!')
+				par.expr = paramTable[row, 'expr']
+
+	def _createProxyParameters(self):
+		self._log('_createProxyParameters()')
+		parNames = self._getParNames(hidden='0')
+		self.parameterProxy.BuildParameters(self.GetSceneComp(), parNames)
+
+	def _attachSettingsToProxies(self):
+		self._log('_attachSettingsToProxies()')
+		proxy = self.parameterProxy.Params
+		scene = self.GetSceneComp()
+		parNames = self._getParNames(category='setting')
+		for name in parNames:
+			scene.par[name].expr = scene.shortcutPath(proxy, toParName=name)
+
+	def _createPlaceholderChannels(self):
+		self._log('_createPlaceholderChannels()')
+		paramTable = self._paramSchemaTable()
+		names = []
+		for row in range(1, paramTable.numRows):
+			if paramTable[row, 'map'] == '1' or paramTable[row, 'modulate'] or paramTable[row, 'filter'] == '1':
+				names.append(paramTable[row, 'name'].val)
+		self.ownerComp.op('paramPlaceholderChannels').par.name0 = ' '.join(names)
+
+	def _bindMappableProxyToInputChannels(self):
+		self._log('_bindMappableProxyToInputChannels()')
+		parNames = self._getParNames(mappable='1')
+		self.parameterProxy.BindToInputChannels(parNames)
+
+	def _linkSceneParamsToInputChannels(self):
+		self._log('_linkSceneParamsToInputChannels()')
+		paramTable = self._paramSchemaTable()
+		parNames = []
+		for row in range(1, paramTable.numRows):
+			if paramTable[row, 'filter'] == '1' or paramTable[row, 'map'] == '1' or paramTable[row, 'modulate'] == '1':
+				parNames.append(paramTable[row, 'name'].val)
+		self.sceneLoader.AttachToInputChannels(parNames)
+
+	def _setUpParamFilterScope(self):
+		self._log('_setUpParamFilterScope()')
+		parNames = self._getParNames(filterable='1')
+		self.ownerComp.op('paramFilter').par.Filterpars = ' '.join(parNames)
+
+	def _loadInitialParamValues(self):
+		self._log('_loadInitialParamValues()')
+		sceneName = self.GetSceneName()
+		sceneState = iop.appState.GetStateForScene(sceneName)
+		snapshot = dict(self._paramSnapshot)
+		if sceneState and sceneState.settings and sceneState.settings.params:
+			for parName, val in sceneState.settings.params.items():
+				snapshot[parName] = val
+		self._log(f'using scene state: {sceneState is not None}, pars: {" ".join(snapshot.keys())}')
+		self.parameterProxy.LoadParameterSnapshot(snapshot)
+		self._paramSnapshot = {}
+
 	def _extractSceneState(self) -> Optional[SceneState]:
 		if not self.GetSceneComp():
 			return None
 		return SceneState(
 			name=self.GetSceneName(),
-			settings=CompSettings.extractFromComponent(
-				CompStructure(
-					self.parameterProxy.Params,
-					excludeParams=tdu.split(self.parameterProxy.par.Excludeparams),
-					retainBindings=False))
-		)
+			settings=CompSettings(
+				params=self._getParamSnapshot()))
 
 	def SaveSceneState(self):
 		state = self._extractSceneState()
@@ -190,7 +247,7 @@ class SourceTrack(ConfigurableExtension):
 
 	def buildParamSchemaTable(self, dat: 'scriptDAT'):
 		dat.clear()
-		dat.appendRow(['name', 'category', 'expr', 'filter', 'modulate', 'hidden'])
+		dat.appendRow(['name', 'category', 'expr', 'filter', 'map', 'modulate', 'hidden'])
 		scene = self.GetSceneComp()
 		if not scene:
 			return
@@ -217,24 +274,31 @@ class SourceTrack(ConfigurableExtension):
 				continue
 			expr = systemExprs.get(par.name)
 			if expr is not None:
-				dat.appendRow([par.name, 'system', expr, 0, 0, 1])
+				dat.appendRow([par.name, 'system', expr, 0, 0, 0, 1])
 			elif par.isPulse or par.isMomentary:
-				dat.appendRow([par.name, 'trigger', '', 0, 0, 0])
+				dat.appendRow([par.name, 'trigger', '', 0, 0, 0, 0])
 			elif par.isToggle:
-				dat.appendRow([par.name, 'toggle', '', 0, 0, 0])
+				dat.appendRow([par.name, 'toggle', '', 0, 1, 0, 0])
 			elif par.isMenu or par.isOP or par.isString or par.name in settingParNames:
-				dat.appendRow([par.name, 'setting', '', 0, 0, 0])
+				dat.appendRow([par.name, 'setting', '', 0, 0, 0, 0])
 			elif par.isInt:
-				dat.appendRow([par.name, 'control', '', 0, 1, 0])
+				dat.appendRow([par.name, 'control', '', 0, 1, 1, 0])
 			else:
-				dat.appendRow([par.name, 'control', '', 1, 1, 0])
+				dat.appendRow([par.name, 'control', '', 1, 1, 1, 0])
 
-	def _assignSystemParams(self):
-		scene = self.GetSceneComp()
+	def _getParNames(self, category=None, filterable=None, mappable=None, modulatable=None, hidden=None):
+		names = []
 		paramTable = self._paramSchemaTable()
 		for row in range(1, paramTable.numRows):
-			if paramTable[row, 'expr'] != '':
-				par = scene.par[paramTable[row, 'name']]
-				if par is None:
-					raise Exception('MISSING PARAM!')
-				par.expr = paramTable[row, 'expr']
+			if category is not None and paramTable[row, 'category'] != category:
+				continue
+			if filterable is not None and paramTable[row, 'filter'] != filterable:
+				continue
+			if mappable is not None and paramTable[row, 'map'] != mappable:
+				continue
+			if modulatable is not None and paramTable[row, 'modulate'] != modulatable:
+				continue
+			if hidden is not None and paramTable[row, 'hidden'] != hidden:
+				continue
+			names.append(paramTable[row, 'name'].val)
+		return names
