@@ -255,14 +255,13 @@ class SourceTrack(ConfigurableExtension):
 		systemExprs = {
 			'Resx': 'ipar.appState.Resx',
 			'Resy': 'ipar.appState.Resy',
-			# TODO: replace this when pulling par filtering out of scenes
-			'Parfilterenable': 'ipar.appState.Parfilterenable',
-			'Parfiltertype': 'ipar.appState.Parfiltertype',
-			'Parfilterwidth': 'ipar.appState.Parfilterwidth',
-			'Parfilterlag1': 'ipar.appState.Parfilterlag1',
-			'Parfilterlag2': 'ipar.appState.Parfilterlag2',
-			'Parfilterovershoot1': 'ipar.appState.Parfilterovershoot1',
-			'Parfilterovershoot2': 'ipar.appState.Parfilterovershoot2',
+			'Parfilterenable': '0',
+			'Parfiltertype': '0',
+			'Parfilterwidth': '1',
+			'Parfilterlag1': '1',
+			'Parfilterlag2': '1',
+			'Parfilterovershoot1': '0',
+			'Parfilterovershoot2': '0',
 			'Bump': f"op('{controlValPath}')['Bump']",
 		}
 		systemExprs['Renderresx'] = systemExprs['Renderresw'] = systemExprs['Resx']
