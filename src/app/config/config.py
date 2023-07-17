@@ -35,6 +35,8 @@ if False:
 	iop.sourceTrack1 = SourceTrack(COMP())
 	# noinspection PyTypeChecker
 	iop.sourceTrack2 = SourceTrack(COMP())
+	from timing.timing import Timing
+	iop.timing = Timing(COMP())
 
 def _showMessage(text: str):
 	iop.statusDisplay.ShowMessage(text)
@@ -65,6 +67,7 @@ class Config:
 			control=iop.controls.ExtractSettings(),
 			mixer=iop.mixer.ExtractSettings(),
 			output=iop.output.ExtractSettings(),
+			timing=iop.timing.ExtractSettings(),
 			track1=iop.sourceTrack1.ExtractSettings(),
 			track2=iop.sourceTrack2.ExtractSettings(),
 		)
@@ -98,21 +101,26 @@ class Config:
 			_showMessage('Loading output settings')
 			iop.output.ApplySettings(liveSet.output, applyDefaults=False)
 		elif stage == 6:
+			_showMessage('Loading timing settings')
+			iop.timing.ApplySettings(liveSet.timing, applyDefaults=False)
+		elif stage == 7:
 			_showMessage('Loading track 1 settings')
 			iop.sourceTrack1.ApplySettings(liveSet.track1, applyDefaults=False)
-		elif stage == 7:
+		elif stage == 8:
 			_showMessage('Loading track 2 settings')
 			iop.sourceTrack2.ApplySettings(liveSet.track2, applyDefaults=False)
-		elif stage == 8:
+		elif stage == 9:
 			scenes = liveSet.scenes or []
 			_showMessage(f'Loading {len(scenes)} scenes')
 			iop.sceneLibrary.LoadSceneSpecs(scenes, Action(self._loadLiveSet_stage, [liveSet, stage + 1, thenRun]))
 			return
-		elif stage == 9:
+		elif stage == 10:
 			_showMessage('Loading scene states')
 			# not sure why this check is necessary
 			if hasattr(liveSet, 'sceneStates'):
 				iop.appState.SetAllSceneStates(liveSet.sceneStates)
+			else:
+				iop.appState.SetAllSceneStates([])
 		else:
 			queueCall(thenRun)
 			return

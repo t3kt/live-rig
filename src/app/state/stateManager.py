@@ -25,14 +25,19 @@ class StateManager:
 		self.ownerComp = ownerComp
 
 	def GetAllSceneStates(self) -> List[SceneState]:
-		settings = self.ownerComp.fetch('sceneStates', [], search=False, storeDefault=False)
-		return settings or []
+		sceneStates = self.ownerComp.fetch('sceneStates', [], search=False, storeDefault=False) or []
+		return [
+			SceneState.parseFromText(sceneState) if isinstance(sceneState, str) else sceneState
+			for sceneState in sceneStates
+		]
 
 	def SetAllSceneStates(self, states: Optional[List[SceneState]]):
 		if not states:
 			self.ownerComp.unstore('sceneStates')
 		else:
-			self.ownerComp.store('sceneStates', states)
+			self.ownerComp.store('sceneStates', [
+				state.toYamlText() for state in states
+			])
 
 	def GetStateForScene(self, name: str) -> Optional[SceneState]:
 		for state in self.GetAllSceneStates():

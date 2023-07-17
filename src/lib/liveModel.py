@@ -66,6 +66,7 @@ class CompStructure:
 		if self.excludeParams:
 			excludePars = self.comp.pars(*self.excludeParams)
 			pars = [p for p in pars if p not in excludePars]
+		pars = [p for p in pars if not p.readOnly]
 		return pars
 
 @dataclass
@@ -161,6 +162,7 @@ class LiveSet(_ModelObject):
 	mixer: Optional[CompSettings] = None
 	control: Optional[CompSettings] = None
 	output: Optional[CompSettings] = None
+	timing: Optional[CompSettings] = None
 
 	track1: Optional[CompSettings] = None
 	track2: Optional[CompSettings] = None
