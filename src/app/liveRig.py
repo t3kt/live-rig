@@ -18,6 +18,8 @@ if False:
 	iop.sourceTrack2 = SourceTrack(COMP())
 	from mixer.mixer import Mixer
 	iop.mixer = Mixer(COMP())
+	from log.log import LogController
+	iop.log = LogController(COMP())
 
 class LiveRig:
 	def __init__(self, ownerComp: 'COMP'):
@@ -31,10 +33,12 @@ class LiveRig:
 
 	def _startupStage(self, stage: int):
 		if stage == 0:
-			iop.config.OnStartup(self._startupStage, [stage + 1])
+			iop.log.Initialize()
 		elif stage == 1:
-			iop.sceneLibrary.OnStartup(self._startupStage, [stage + 1])
+			iop.config.OnStartup(self._startupStage, [stage + 1])
 		elif stage == 2:
+			iop.sceneLibrary.OnStartup(self._startupStage, [stage + 1])
+		elif stage == 3:
 			if not ui.performMode:
 				self.ownerComp.op('window').par.winopen.pulse()
 
