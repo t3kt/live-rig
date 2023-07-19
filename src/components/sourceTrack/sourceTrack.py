@@ -32,8 +32,10 @@ if False:
 _logger = logging.getLogger(__name__)
 
 class SourceTrack(ConfigurableExtension):
+	ownerComp: '_Comp'
+
 	# noinspection PyTypeChecker
-	def __init__(self, ownerComp: '_Comp'):
+	def __init__(self, ownerComp: 'COMP'):
 		super().__init__(ownerComp)
 		self.sceneInfo = ownerComp.op('sceneInfo')  # type: DAT
 		self.sceneLoader = ownerComp.op('sceneLoader')  # type: SceneLoader

@@ -4,6 +4,9 @@ if False:
 	from _stubs import *
 	from sceneLibrary.sceneLibrary import SceneLibrary
 	iop.sceneLibrary = SceneLibrary(COMP())
+	from sourceTrack.sourceTrack import SourceTrack
+	iop.sourceTrack1 = SourceTrack(COMP())
+	iop.sourceTrack2 = SourceTrack(COMP())
 
 import popMenu
 
@@ -15,7 +18,16 @@ def _showItemMenu(comp: 'COMP'):
 				lambda: ui.viewFile(tdu.expandPath(comp.par.Toxfile), showInFolder=True)),
 			popMenu.Item(
 				'Remove scene',
-				lambda: iop.sceneLibrary.RemoveSceneByName(comp.par.Name.eval())),
+				lambda: iop.sceneLibrary.RemoveSceneByName(comp.par.Name.eval()),
+				dividerafter=True),
+			popMenu.Item(
+				'Load into track 1',
+				lambda: iop.sourceTrack1.LoadScene(comp.par.Name.eval(), comp.par.Toxfile.eval())
+			),
+			popMenu.Item(
+				'Load into track 2',
+				lambda: iop.sourceTrack2.LoadScene(comp.par.Name.eval(), comp.par.Toxfile.eval())
+			),
 		]
 	)
 
