@@ -21,6 +21,8 @@ if False:
 	from log.log import LogController
 	iop.log = LogController(COMP())
 
+_logger = logging.getLogger(__name__)
+
 class LiveRig:
 	def __init__(self, ownerComp: 'COMP'):
 		self.ownerComp = ownerComp
@@ -32,15 +34,24 @@ class LiveRig:
 		queueCall(self._startupStage, [0])
 
 	def _startupStage(self, stage: int):
+		_logger.info(f'Startup stage: {stage}')
 		if stage == 0:
 			iop.log.Initialize()
 		elif stage == 1:
 			iop.config.OnStartup(self._startupStage, [stage + 1])
+			return
 		elif stage == 2:
 			iop.sceneLibrary.OnStartup(self._startupStage, [stage + 1])
+			return
 		elif stage == 3:
 			if not ui.performMode:
+				_logger.info('Opening window for non-perform mode')
 				self.ownerComp.op('window').par.winopen.pulse()
+			else:
+				_logger.info('Already in perform mode')
+		else:
+			return
+		queueCall(self._startupStage, [stage + 1])
 
 	@staticmethod
 	def GetControlTargetSceneName():
