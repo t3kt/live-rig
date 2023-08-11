@@ -24,6 +24,7 @@ class SceneLibrary:
 		self.sceneTable = ownerComp.op('sceneTable')  # type: tableDAT
 
 	def OnStartup(self, thenRun: Callable = None, runArgs: list = None):
+		_logger.info('OnStartup')
 		self._initializeSceneTable()
 		queueCall(thenRun, runArgs)
 

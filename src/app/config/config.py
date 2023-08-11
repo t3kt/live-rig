@@ -1,3 +1,5 @@
+import logging
+
 from liveCommon import Action, queueCall, showPromptDialog
 from liveModel import LiveSet
 from pathlib import Path
@@ -38,8 +40,11 @@ if False:
 	from timing.timing import Timing
 	iop.timing = Timing(COMP())
 
+_logger = logging.getLogger(__name__)
+
 def _showMessage(text: str):
 	iop.statusDisplay.ShowMessage(text)
+	_logger.info(text)
 
 class Config:
 	def __init__(self, ownerComp: 'COMP'):

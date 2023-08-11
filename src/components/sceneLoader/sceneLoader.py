@@ -44,6 +44,7 @@ class SceneLoader(CallbacksExt):
 				yield o
 
 	def UnloadScene(self):
+		self._log('Begin UnloadScene()')
 		self.engine.par.unload.pulse()
 		self.engine.par.file = ''
 		self.engine.par.play = False
@@ -58,12 +59,14 @@ class SceneLoader(CallbacksExt):
 		self.infoTable.clear()
 		self.infoTable.appendCol(['tox', 'comp'])
 		self.infoTable.appendCol([])
+		self._log('End UnloadScene')
 		self.DoCallback('onSceneUnloaded', {})
 
 	def Unloadscene(self, _=None):
 		self.UnloadScene()
 
 	def LoadScene(self, tox: str):
+		self._log(f'Begin LoadScene({tox})')
 		self.UnloadScene()
 		mode = self._mode()
 		self._setInfoField('tox', tdu.collapsePath(tox))
@@ -82,6 +85,7 @@ class SceneLoader(CallbacksExt):
 			self.engine.par.file = tdu.expandPath(tox)
 			self.engine.par.initialize.pulse()
 			self.engine.par.play = True
+		self._log('End LoadScene')
 
 	@staticmethod
 	def _findSceneOutput(comp: 'COMP'):
