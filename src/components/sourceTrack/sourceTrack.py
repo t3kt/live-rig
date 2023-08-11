@@ -268,7 +268,7 @@ class SourceTrack(ConfigurableExtension):
 		scene = self.GetSceneComp()
 		if not scene:
 			return
-		controlValPath = self.ownerComp.op('controlVals').path
+		controlValPath = self.ownerComp.op('controlValues').path
 		systemExprs = {
 			'Resx': 'ipar.appState.Resx',
 			'Resy': 'ipar.appState.Resy',
